@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>✅ Booking Confirmed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .copy-btn {
+      cursor: pointer;
+      background-color: #e0e7ff;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body class="bg-green-50 p-6">
+  <div class="max-w-xl mx-auto bg-white shadow p-6 rounded">
+    <h1 class="text-2xl font-bold text-green-600 mb-4">🎉 Booking Successful</h1>
+    <div class="mb-4">
+      <p class="font-medium">👤 Booked By: <span id="fullName"></span></p>
+      <p class="font-medium">📞 Contact: <span id="phone"></span></p>
+    </div>
+
+    <div id="bookingDetails" class="mb-4 bg-gray-100 p-4 rounded text-sm"></div>
+
+    <div class="mb-4">
+      <p class="font-semibold">💰 Ticket Price: 150 MVR</p>
+      <p class="font-semibold">🎫 Total Tickets: <span id="totalTickets"></span></p>
+      <p class="font-semibold">💵 Total Amount: <span id="totalAmount"></span> MVR</p>
+    </div>
+
+    <div class="mb-4">
+      <p class="mb-1">📤 Please transfer the amount to:</p>
+      <div class="flex items-center space-x-2">
+        <span class="font-mono">7730000654882 – BIZOLVE</span>
+        <button class="copy-btn" onclick="copyAccount()">📋 Copy</button>
+      </div>
+      <p class="mt-1 text-sm text-gray-600">📨 Viber to 7981238 (irfan)</p>
+    </div>
+
+    <p class="text-sm text-red-600 mb-2">⚠️ Your booking will only be confirmed after payment is sent and verified. Please complete the payment within 20 minutes.</p>
+
+    <p class="text-sm mt-4 text-blue-700">📸 Please take a screenshot of this page for your reference.</p>
+
+    <button onclick="window.location.href='index.html'" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">🎫 Book Another Ticket</button>
+  </div>
+
+  <script>
+    const fullName = localStorage.getItem("bookingFullName") || "N/A";
+    const phone = localStorage.getItem("bookingPhone") || "N/A";
+    const selectedSeats = JSON.parse(localStorage.getItem("selectedSeats")) || [];
+
+    document.getElementById("fullName").textContent = fullName;
+    document.getElementById("phone").textContent = phone;
+    document.getElementById("totalTickets").textContent = selectedSeats.length;
+    document.getElementById("totalAmount").textContent = selectedSeats.length * 150;
+
+    document.getElementById("bookingDetails").innerHTML = selectedSeats.map(s => {
+      const screenName = s.seatId
+        .replace('clusterA', 'Screen A')
+        .replace('clusterB', 'Screen B')
+        .replace('clusterC', 'Screen C');
+      return `<div>🎫 ${screenName} – ${s.name}</div>`;
+    }).join("");
+
+    function copyAccount() {
+      navigator.clipboard.writeText("7730000654882").then(() => {
+        alert("Account number copied!");
+      }).catch(() => alert("Unable to copy. Try manually."));
+    }
+  </script>
+</body>
+</html>

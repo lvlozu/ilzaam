@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎛️ Admin Panel – Miladhoo Booking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .seat-list { font-size: 0.9rem; }
+    .seat-block {
+      background-color: #fef9c3;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .seat-line {
+      background-color: #e0f2fe;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .action-btn {
+      margin-left: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    .search-input {
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-4">
+  <div id="login" class="max-w-md mx-auto bg-white p-6 rounded shadow">
+    <h2 class="text-xl font-bold mb-2">🔐 Admin Login</h2>
+    <input type="text" id="username" placeholder="Username" class="border p-2 w-full mb-2" />
+    <input type="password" id="password" placeholder="Password" class="border p-2 w-full mb-4" />
+    <button onclick="checkLogin()" class="bg-blue-600 text-white px-4 py-2 rounded">Login</button>
+    <p id="error" class="text-red-600 mt-2 text-sm hidden">❌ Invalid credentials</p>
+  </div>
+
+  <div id="adminPanel" class="max-w-4xl mx-auto hidden">
+    <h1 class="text-xl font-bold mb-4">🎛️ Admin Panel</h1>
+    <input type="text" id="searchBox" oninput="filterList()" class="search-input" placeholder="🔍 Search seat, name or number...">
+    <div id="seatList"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDLb5aZcLr8L-l5ve3se3-nPNNA_6hU1VE",
+      authDomain: "miladhoobooking.firebaseapp.com",
+      databaseURL: "https://miladhoobooking-default-rtdb.firebaseio.com",
+      projectId: "miladhoobooking",
+      storageBucket: "miladhoobooking.appspot.com",
+      messagingSenderId: "762620004750",
+      appId: "1:762620004750:web:3bf9bbc843f54499673cdf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const seatList = document.getElementById("seatList");
+    let bookingData = {};
+
+    window.checkLogin = () => {
+      const u = document.getElementById("username").value;
+      const p = document.getElementById("password").value;
+      if ((u === "mozu" || u === "admin") && p === "654@321") {
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("adminPanel").classList.remove("hidden");
+        loadData();
+      } else {
+        document.getElementById("error").classList.remove("hidden");
+      }
+    };
+
+    function loadData() {
+      onValue(ref(db, "bookings"), (snapshot) => {
+        bookingData = snapshot.val() || {};
+        renderList();
+      });
+    }
+
+    function renderList() {
+      seatList.innerHTML = "";
+      const searchTerm = document.getElementById("searchBox").value.toLowerCase();
+      const entries = Object.entries(bookingData).filter(([_, b]) =>
+        b.seatId.toLowerCase().includes(searchTerm) ||
+        b.name.toLowerCase().includes(searchTerm) ||
+        b.phone.includes(searchTerm)
+      );
+
+      const confirmed = entries.filter(([_, b]) => b.status === 'confirmed')
+        .sort((a, b) => {
+          const [aC, aN] = a[1].seatId.split('-');
+          const [bC, bN] = b[1].seatId.split('-');
+          return aC.localeCompare(bC) || Number(aN) - Number(bN);
+        });
+
+      const pending = entries.filter(([_, b]) => b.status !== 'confirmed');
+
+      confirmed.forEach(([id, b]) => {
+        const row = document.createElement("div");
+        row.className = "seat-line";
+        row.innerHTML = `
+          <div><strong>${b.seatId.replace('clusterA', 'Screen A').replace('clusterB', 'Screen B').replace('clusterC', 'Screen C')}</strong> – ${b.name} – ${b.phone}</div>
+          <div>
+            <button class="bg-yellow-500 text-white action-btn" onclick="editBooking('${id}')">✏️</button>
+            <button class="bg-red-500 text-white action-btn" onclick="clearBooking('${id}')">❌</button>
+          </div>
+        `;
+        seatList.appendChild(row);
+      });
+
+      pending.forEach(([id, b]) => {
+        const div = document.createElement("div");
+        div.className = "seat-block seat-list";
+        div.innerHTML = `
+          <div><strong>${b.seatId.replace('clusterA', 'Screen A').replace('clusterB', 'Screen B').replace('clusterC', 'Screen C')}</strong> – ${b.name} – ${b.phone}</div>
+          <div class="text-gray-600 text-sm">Booked by: ${b.fullName} – Status: ${b.status}</div>
+          <div class="mt-2">
+            ${b.status === 'booked' ? `<button class="bg-green-500 text-white action-btn" onclick="confirmBooking('${id}')">✅ Confirm</button>` : `<button class="bg-yellow-500 text-white action-btn" onclick="editBooking('${id}')">✏️ Edit</button>`}
+            <button class="bg-red-500 text-white action-btn" onclick="clearBooking('${id}')">❌ Clear</button>
+          </div>
+        `;
+        seatList.appendChild(div);
+      });
+    }
+
+    window.confirmBooking = (id) => update(ref(db, `bookings/${id}`), { status: "confirmed" });
+
+    window.clearBooking = (id) => {
+      if (confirm("Are you sure you want to clear this booking?")) {
+        remove(ref(db, `bookings/${id}`));
+      }
+    };
+
+    window.editBooking = (id) => {
+      const name = prompt("Enter new name:");
+      const phone = prompt("Enter new phone:");
+      if (name && phone) update(ref(db, `bookings/${id}`), { name, phone });
+    };
+
+    window.filterList = () => renderList();
+  </script>
+</body>
+</html>
