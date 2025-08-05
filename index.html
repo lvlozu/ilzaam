@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎟️ Loabin..? - Miladhoo Booking</title>
+  <title>🎟️ Loabin...? - The Movie Booking</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Background blur overlay */
-    #welcome::before {
+    body::before {
       content: "";
-      position: absolute;
+      position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: url('BG.jpg') center/cover no-repeat;
-      filter: blur(4px);
-      opacity: 0.5;
+      filter: blur(5px);
+      opacity: 0.45;
       z-index: -1;
     }
     .seat {
-      width: 34px; height: 34px; font-size: 12px;
-      border-radius: 4px; line-height: 34px; text-align: center;
+      width: 34px; height: 34px;
+      font-size: 12px; border-radius: 4px;
+      line-height: 34px; text-align: center;
     }
     .seat.booked, .seat.confirmed { background-color: #9ca3af; color: white; cursor: not-allowed; }
     .seat.selected { background-color: #fb923c; color: white; }
@@ -28,48 +28,49 @@
     .clusterC .seat { border: 2px solid #34d399; }
   </style>
 </head>
-<body class="bg-yellow-50 h-screen">
+<body class="bg-black/40 min-h-screen p-4 text-white">
 
-  <!-- Welcome Overlay -->
-  <div id="welcome" class="absolute inset-0 flex flex-col items-center justify-center text-center bg-black/50 z-50">
-    <h1 class="text-3xl font-bold text-white drop-shadow-md mb-4">Welcome to Loabin..? Booking</h1>
-    <p class="text-white max-w-md mb-6">Secure your tickets now! Please confirm your booking and make payment as instructed. Maximum 5 seats allowed per booking.</p>
-    <button onclick="document.getElementById('welcome').classList.add('hidden')" class="bg-red-600 text-white px-6 py-3 rounded shadow-lg">Start Booking</button>
+  <!-- Page Header -->
+  <h1 class="text-3xl font-bold mb-2">Loabin...? – The Movie Booking</h1>
+  <p class="mb-4">
+    🎥 Reserve your seats early.<br>
+    ✅ Ticket Price: <b>150/- per ticket</b><br>
+    📤 <b>Booker is fully responsible for all seats and payment. Max 5 seats allowed per booking.</b>
+  </p>
+
+  <!-- Payment Details -->
+  <div class="mb-4 p-3 bg-white/20 rounded">
+    <p class="font-semibold">💳 Payment Account</p>
+    <p id="payAcc" class="mb-2">Bank of Maldives - 7703477521101 (ISML ABBKR)</p>
+    <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white">Copy Account</button>
   </div>
 
-  <!-- Original Booking Content -->
-  <div class="p-4">
-    <div id="step1">
-      <h1 class="text-xl font-bold mb-2">🎟️ Loabin..? - Miladhoo Booking</h1>
-      <p class="mb-2">
-        ✅ Ticket Price: 150/- per ticket<br>
-        🟩 Please make the payment after booking.<br>
-        📤 Booker is responsible for all seats booked. Max 5 seats allowed.
-      </p>
-      <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-2">
-      <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-2">
-      <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded">Next</button>
-    </div>
+  <!-- Step 1 -->
+  <div id="step1">
+    <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-2 text-black">
+    <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-2 text-black">
+    <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded">Next</button>
+  </div>
 
-    <div id="step2" class="hidden">
-      <h2 class="text-lg font-bold mb-2">Choose Your Seats (Max 5)</h2>
-      <div class="grid md:grid-cols-3 grid-cols-1 gap-6">
-        <div>
-          <h3 class="text-blue-500 font-semibold mb-1 text-center">Screen A</h3>
-          <div id="clusterA" class="clusterA"></div>
-        </div>
-        <div>
-          <h3 class="text-pink-500 font-semibold mb-1 text-center">Screen B</h3>
-          <div id="clusterB" class="clusterB"></div>
-        </div>
-        <div>
-          <h3 class="text-green-500 font-semibold mb-1 text-center">Screen C</h3>
-          <div id="clusterC" class="clusterC"></div>
-        </div>
+  <!-- Step 2 -->
+  <div id="step2" class="hidden">
+    <h2 class="text-lg font-bold mb-2">Choose Your Seats (Max 5)</h2>
+    <div class="grid md:grid-cols-3 grid-cols-1 gap-6">
+      <div>
+        <h3 class="text-blue-300 font-semibold mb-1 text-center">Screen A</h3>
+        <div id="clusterA" class="clusterA"></div>
       </div>
-      <div id="namesArea" class="mt-4"></div>
-      <button onclick="submitBooking()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Submit Booking</button>
+      <div>
+        <h3 class="text-pink-300 font-semibold mb-1 text-center">Screen B</h3>
+        <div id="clusterB" class="clusterB"></div>
+      </div>
+      <div>
+        <h3 class="text-green-300 font-semibold mb-1 text-center">Screen C</h3>
+        <div id="clusterC" class="clusterC"></div>
+      </div>
     </div>
+    <div id="namesArea" class="mt-4"></div>
+    <button onclick="submitBooking()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Submit Booking</button>
   </div>
 
 <script type="module">
@@ -91,13 +92,14 @@ const db = getDatabase(app);
 const clusters = { clusterA: { rows: 9, cols: 9 }, clusterB: { rows: 10, cols: 10 }, clusterC: { rows: 9, cols: 9 } };
 let selectedSeats = [];
 
+window.copyAcc = () => {
+  navigator.clipboard.writeText(document.getElementById("payAcc").textContent).then(()=>alert("Account number copied!"));
+};
+
 window.proceedToSeats = () => {
   const name = document.getElementById("fullName").value.trim();
   const phone = document.getElementById("phone").value.trim();
-  if (!name || !/^([79])\d{6}$/.test(phone)) {
-    alert("❌ Enter valid full name and contact number starting with 7 or 9");
-    return;
-  }
+  if (!name || !/^([79])\d{6}$/.test(phone)) return alert("❌ Enter valid full name and contact number starting with 7 or 9");
   document.getElementById("step1").classList.add("hidden");
   document.getElementById("step2").classList.remove("hidden");
 };
@@ -126,6 +128,7 @@ function renderClusters() {
     }
   }
 }
+
 function toggleSelect(seatId) {
   const el = document.querySelector(`[data-id='${seatId}']`);
   if (!el || el.classList.contains("booked") || el.classList.contains("confirmed")) return;
@@ -139,15 +142,17 @@ function toggleSelect(seatId) {
   }
   updateNamesArea();
 }
+
 function updateNamesArea() {
   const area = document.getElementById("namesArea");
   area.innerHTML = selectedSeats.map((s, i) => `
-    <div class="my-1">${s.seatId}: <input placeholder="Name for seat" class="border p-1 w-64" data-index="${i}" value="${s.name || ''}"></div>
+    <div class="my-1">${s.seatId}: <input placeholder="Name for seat" class="border p-1 w-64 text-black" data-index="${i}" value="${s.name || ''}"></div>
   `).join("");
   area.querySelectorAll("input").forEach(input => {
     input.addEventListener("input", e => selectedSeats[+e.target.dataset.index].name = e.target.value.trim());
   });
 }
+
 window.submitBooking = () => {
   const fullName = document.getElementById("fullName").value.trim();
   const phone = document.getElementById("phone").value.trim();
@@ -169,6 +174,7 @@ window.submitBooking = () => {
     Promise.all(promises).then(() => window.location.href = "thankyou.html").catch(() => window.location.href = "error.html");
   }, { onlyOnce: true });
 };
+
 renderClusters();
 onValue(ref(db, "bookings"), snap => {
   const data = snap.val();
