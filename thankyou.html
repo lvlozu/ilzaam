@@ -6,6 +6,16 @@
   <title>✅ Booking Confirmed</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url('BG.jpg') center/cover no-repeat;
+      filter: blur(3px);
+      opacity: 0.6;
+      z-index: -1;
+    }
     .copy-btn {
       cursor: pointer;
       background-color: #e0e7ff;
@@ -15,8 +25,8 @@
     }
   </style>
 </head>
-<body class="bg-green-50 p-6">
-  <div class="max-w-xl mx-auto bg-white shadow p-6 rounded">
+<body class="p-6 text-gray-800">
+  <div class="max-w-xl mx-auto bg-white/80 backdrop-blur shadow p-6 rounded">
     <h1 class="text-2xl font-bold text-green-600 mb-4 text-center">🎉 Booking Successful</h1>
     
     <div class="mb-4">
@@ -38,7 +48,7 @@
         <span class="font-mono">7730000654882 – BIZOLVE</span>
         <button class="copy-btn" onclick="copyAccount()">📋 Copy</button>
       </div>
-      <p class="mt-1 text-sm text-gray-600">📞 Viber to 7981238 (irfan)</p>
+      <p class="mt-1 text-sm text-gray-700">📞 Viber to 7981238 (irfan)</p>
     </div>
 
     <p class="text-sm text-red-600 mb-2">
@@ -56,7 +66,7 @@
       <h3 class="text-xl font-semibold text-green-600 mb-4">See You at The Movie</h3>
     </div>
 
-    <div class="text-left text-gray-800 mb-6">
+    <div class="text-left text-gray-900 mb-6">
       <p class="font-medium">🎥 Loabin...? - The Movie</p>
       <p>📅 22nd August 2025 (Friday Night)</p>
       <p>📍 Miladhoo Youth Center</p>
