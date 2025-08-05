@@ -11,9 +11,9 @@
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: url('BG.jpg') center/cover no-repeat;
+      background: url('BG2.jpg') center/cover no-repeat;
       filter: blur(5px);
-      opacity: 0.45;
+      opacity: 0.4;
       z-index: -1;
     }
     .seat {
@@ -23,12 +23,12 @@
     }
     .seat.booked, .seat.confirmed { background-color: #9ca3af; color: white; cursor: not-allowed; }
     .seat.selected { background-color: #fb923c; color: white; }
-    .clusterA .seat { border: 2px solid #60a5fa; }
-    .clusterB .seat { border: 2px solid #f472b6; }
-    .clusterC .seat { border: 2px solid #34d399; }
+    .screenA .seat { border: 2px solid #60a5fa; }
+    .screenB .seat { border: 2px solid #f472b6; }
+    .screenC .seat { border: 2px solid #34d399; }
   </style>
 </head>
-<body class="bg-black/40 min-h-screen p-4 text-white">
+<body class="bg-black/50 min-h-screen text-white p-4">
 
   <!-- Page Header -->
   <h1 class="text-3xl font-bold mb-2">Loabin...? – The Movie Booking</h1>
@@ -41,7 +41,7 @@
   <!-- Payment Details -->
   <div class="mb-4 p-3 bg-white/20 rounded">
     <p class="font-semibold">💳 Payment Account</p>
-    <p id="payAcc" class="mb-2">Bank of Maldives - 7703477521101 (ISML ABBKR)</p>
+    <p id="payAcc" class="mb-2">Bizolve Account - 7703477521101 (ISML ABBKR)</p>
     <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white">Copy Account</button>
   </div>
 
@@ -52,21 +52,21 @@
     <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded">Next</button>
   </div>
 
-  <!-- Step 2 -->
-  <div id="step2" class="hidden">
+  <!-- Seat Selection -->
+  <div id="seatSection" class="hidden">
     <h2 class="text-lg font-bold mb-2">Choose Your Seats (Max 5)</h2>
     <div class="grid md:grid-cols-3 grid-cols-1 gap-6">
       <div>
         <h3 class="text-blue-300 font-semibold mb-1 text-center">Screen A</h3>
-        <div id="clusterA" class="clusterA"></div>
+        <div id="screenA" class="screenA"></div>
       </div>
       <div>
         <h3 class="text-pink-300 font-semibold mb-1 text-center">Screen B</h3>
-        <div id="clusterB" class="clusterB"></div>
+        <div id="screenB" class="screenB"></div>
       </div>
       <div>
         <h3 class="text-green-300 font-semibold mb-1 text-center">Screen C</h3>
-        <div id="clusterC" class="clusterC"></div>
+        <div id="screenC" class="screenC"></div>
       </div>
     </div>
     <div id="namesArea" class="mt-4"></div>
@@ -89,7 +89,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const clusters = { clusterA: { rows: 9, cols: 9 }, clusterB: { rows: 10, cols: 10 }, clusterC: { rows: 9, cols: 9 } };
+const screens = { screenA: { rows: 9, cols: 9 }, screenB: { rows: 10, cols: 10 }, screenC: { rows: 9, cols: 9 } };
 let selectedSeats = [];
 
 window.copyAcc = () => {
@@ -101,12 +101,12 @@ window.proceedToSeats = () => {
   const phone = document.getElementById("phone").value.trim();
   if (!name || !/^([79])\d{6}$/.test(phone)) return alert("❌ Enter valid full name and contact number starting with 7 or 9");
   document.getElementById("step1").classList.add("hidden");
-  document.getElementById("step2").classList.remove("hidden");
+  document.getElementById("seatSection").classList.remove("hidden");
 };
 
-function renderClusters() {
-  for (const [clusterId, { rows, cols }] of Object.entries(clusters)) {
-    const container = document.getElementById(clusterId);
+function renderScreens() {
+  for (const [screenId, { rows, cols }] of Object.entries(screens)) {
+    const container = document.getElementById(screenId);
     let seatCounter = 1;
     for (let r = 1; r <= rows; r++) {
       const row = document.createElement("div");
@@ -115,7 +115,7 @@ function renderClusters() {
       for (let c = 1; c <= cols; c++) {
         const trueCol = r % 2 === 0 ? cols - c + 1 : c;
         const seatNum = seatCounter++;
-        const seatId = `${clusterId}-${seatNum}`;
+        const seatId = `${screenId}-${seatNum}`;
         const el = document.createElement("div");
         el.className = "seat";
         el.textContent = seatNum;
@@ -168,14 +168,14 @@ window.submitBooking = () => {
 
     const dataRef = ref(db, "bookings");
     const promises = selectedSeats.map(seat => push(dataRef, {
-      seatId: seat.seatId, cluster: seat.seatId.split('-')[0], seat: seat.seatId.split('-')[1],
+      seatId: seat.seatId, screen: seat.seatId.split('-')[0], seat: seat.seatId.split('-')[1],
       name: seat.name, status: "booked", fullName, phone
     }));
     Promise.all(promises).then(() => window.location.href = "thankyou.html").catch(() => window.location.href = "error.html");
   }, { onlyOnce: true });
 };
 
-renderClusters();
+renderScreens();
 onValue(ref(db, "bookings"), snap => {
   const data = snap.val();
   if (!data) return;
