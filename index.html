@@ -11,9 +11,9 @@
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: url('BG2.jpg') center/cover no-repeat;
-      filter: blur(6px);
-      opacity: 0.45;
+      background: url('BG.jpg') center/cover no-repeat;
+      filter: blur(3px);
+      opacity: 0.6;
       z-index: -1;
     }
     .seat {
@@ -26,50 +26,43 @@
     .screenA .seat { border: 2px solid #60a5fa; }
     .screenB .seat { border: 2px solid #f472b6; }
     .screenC .seat { border: 2px solid #34d399; }
+    .text-outline {
+      color: #dc2626; /* red-600 */
+      -webkit-text-stroke: 1px black;
+    }
   </style>
 </head>
-<body class="text-white min-h-screen p-4">
+<body class="min-h-screen p-4">
 
   <!-- Header -->
   <div class="text-center mb-4">
-    <h1 class="text-2xl font-bold mb-1">Loabin...? - The Movie</h1>
-    <h2 class="text-lg font-medium mb-4">Booking For N. Miladhoo</h2>
+    <h1 class="text-2xl font-bold text-outline mb-1">Welcome to</h1>
+    <h2 class="text-xl font-bold text-outline mb-1">Loabin...? - The Movie</h2>
+    <h3 class="text-lg font-medium text-outline mb-4">Booking For N. Miladhoo</h3>
   </div>
 
   <!-- Pre-Booking Instructions -->
-  <div id="instructions" class="bg-white/20 p-4 rounded mb-4">
-    <p class="mb-2 text-lg font-bold">🎥 Loabin...? - The Movie</p>
-    <p class="mb-2">📍 Venue: <b>Miladhoo Youth Center</b></p>
-    <p class="mb-2">📅 Date: <b>22nd August 2025 (Friday Night)</b></p>
-    <p class="mb-2">✅ Ticket Price: <b>150/- per ticket</b></p>
-    <p class="mb-2">📤 Booker is fully responsible for all seats booked and must make full payment.</p>
-    <p class="mb-2">🟩 Maximum of <b>5 seats</b> allowed per booking.</p>
+  <div id="instructions" class="bg-white/30 backdrop-blur p-4 rounded mb-4 text-center">
+    <p class="mb-2 text-lg font-bold text-outline">📍 Venue: Miladhoo Youth Center</p>
+    <p class="mb-2 text-outline">📅 Date: 22nd August 2025 (Friday Night)</p>
+    <p class="mb-2 text-outline">✅ Ticket Price: 150/- per ticket</p>
+    <p class="mb-2 text-outline">📤 Booker is fully responsible for all seats booked and must make full payment.</p>
+    <p class="mb-2 text-outline">🟩 Maximum of 5 seats allowed per booking.</p>
     <div class="mt-3">
-      <p class="font-semibold mb-1">💳 Payment Account</p>
-      <p id="payAcc" class="mb-2">7730000654882 (BIZOLVE)</p>
-      <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white">Copy Account</button>
+      <p class="font-semibold mb-1 text-outline">💳 Payment Account</p>
+      <p id="payAcc" class="mb-2 text-outline">7730000654882 (BIZOLVE)</p>
+      <button onclick="copyAcc()" class="bg-green-600 px-2 py-1 rounded text-white text-sm">Copy</button>
     </div>
 
     <!-- Trailer Section with Overlay -->
     <div id="trailerSection" class="mt-6 text-center">
-      <p class="font-semibold mb-2">🎬 Official Trailer</p>
+      <p class="font-semibold mb-2 text-outline">🎬 Official Trailer</p>
       <div class="relative w-full max-w-lg mx-auto" style="padding-bottom: 56.25%; background:#000;">
         <div id="trailerOverlay" 
              class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/70 text-white rounded">
           <p class="mb-3">Watch the Loabin...? Trailer</p>
-window.playTrailer = () => {
-  document.getElementById('trailerOverlay').classList.add('hidden');
-  const frame = document.getElementById('trailerFrame');
-  frame.src = "https://www.youtube.com/embed/-s63WVjQ_O4?rel=0"; // sound enabled
-  frame.classList.remove('hidden');
-  document.getElementById('toBookingAfterTrailer').classList.remove('hidden'); // show booking button
-};
+          <button onclick="playTrailer()" class="bg-red-600 px-4 py-2 rounded mb-3">▶ Play Trailer</button>
           <button onclick="skipToBooking()" class="bg-green-600 px-4 py-2 rounded">➡ Skip to Booking</button>
-          <button id="toBookingAfterTrailer" 
-        onclick="skipToBooking()" 
-        class="mt-4 bg-green-600 px-4 py-2 rounded hidden">
-  ➡ Proceed to Booking
-</button>
         </div>
         <iframe id="trailerFrame" 
                 class="absolute top-0 left-0 w-full h-full rounded hidden"
@@ -80,11 +73,16 @@ window.playTrailer = () => {
                 allowfullscreen>
         </iframe>
       </div>
+      <button id="toBookingAfterTrailer" 
+              onclick="skipToBooking()" 
+              class="mt-4 bg-green-600 px-4 py-2 rounded hidden">
+        ➡ Proceed to Booking
+      </button>
     </div>
   </div>
 
   <!-- Step 1 -->
-  <div id="step1" class="hidden mb-4">
+  <div id="step1" class="hidden mb-4 text-center">
     <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-3 text-black rounded">
     <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-3 text-black rounded">
     <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Next</button>
@@ -92,18 +90,18 @@ window.playTrailer = () => {
 
   <!-- Seat Selection -->
   <div id="seatSection" class="hidden">
-    <h2 class="text-lg font-bold text-center mb-3">Choose Your Seats (Max 5)</h2>
+    <h2 class="text-lg font-bold text-center mb-3 text-outline">Choose Your Seats (Max 5)</h2>
     <div class="grid grid-cols-1 gap-6">
       <div>
-        <h3 class="text-blue-300 font-semibold mb-1 text-center">Screen A</h3>
+        <h3 class="text-red-400 font-semibold mb-1 text-center">Screen A</h3>
         <div id="screenA" class="screenA"></div>
       </div>
       <div>
-        <h3 class="text-pink-300 font-semibold mb-1 text-center">Screen B</h3>
+        <h3 class="text-red-400 font-semibold mb-1 text-center">Screen B</h3>
         <div id="screenB" class="screenB"></div>
       </div>
       <div>
-        <h3 class="text-green-300 font-semibold mb-1 text-center">Screen C</h3>
+        <h3 class="text-red-400 font-semibold mb-1 text-center">Screen C</h3>
         <div id="screenC" class="screenC"></div>
       </div>
     </div>
@@ -131,14 +129,16 @@ const screens = { screenA: { rows: 9, cols: 9 }, screenB: { rows: 10, cols: 10 }
 let selectedSeats = [];
 
 window.copyAcc = () => {
-  navigator.clipboard.writeText("7730000654882 (BIZOLVE)").then(()=>alert("Account number copied!"));
+  const acc = document.getElementById("payAcc").innerText;
+  navigator.clipboard.writeText(acc).then(() => alert("Account copied: " + acc));
 };
 
-frame.src = "https://www.youtube.com/embed/-s63WVjQ_O4?rel=0";
+window.playTrailer = () => {
   document.getElementById('trailerOverlay').classList.add('hidden');
   const frame = document.getElementById('trailerFrame');
-  frame.src = "https://www.youtube.com/embed/-s63WVjQ_O4?autoplay=1&mute=1&rel=0";
+  frame.src = "https://www.youtube.com/embed/-s63WVjQ_O4?rel=0";
   frame.classList.remove('hidden');
+  document.getElementById('toBookingAfterTrailer').classList.remove('hidden');
 };
 
 window.skipToBooking = () => {
