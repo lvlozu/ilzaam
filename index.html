@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎟️ Loabin...? - The Movie Booking</title>
+  <title>Loabin...? - The Movie | Booking For N. Miladhoo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body::before {
+    #seatSection::before {
       content: "";
-      position: fixed;
+      position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: url('BG2.jpg') center/cover no-repeat;
@@ -28,34 +28,32 @@
     .screenC .seat { border: 2px solid #34d399; }
   </style>
 </head>
-<body class="bg-black/50 min-h-screen text-white p-4">
+<body class="bg-black/60 min-h-screen text-white">
 
-  <!-- Page Header -->
-  <h1 class="text-3xl font-bold mb-2">Loabin...? – The Movie Booking</h1>
-  <p class="mb-4">
-    🎥 Reserve your seats early.<br>
-    ✅ Ticket Price: <b>150/- per ticket</b><br>
-    📤 <b>Booker is fully responsible for all seats and payment. Max 5 seats allowed per booking.</b>
-  </p>
+  <!-- Header -->
+  <div class="text-center pt-6 px-4">
+    <h1 class="text-2xl font-bold mb-1">Loabin...? - The Movie</h1>
+    <h2 class="text-lg font-medium mb-4">Booking For N. Miladhoo</h2>
+  </div>
 
-  <!-- Payment Details -->
-  <div class="mb-4 p-3 bg-white/20 rounded">
-    <p class="font-semibold">💳 Payment Account</p>
-    <p id="payAcc" class="mb-2">Bizolve Account - 7703477521101 (ISML ABBKR)</p>
-    <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white">Copy Account</button>
+  <!-- Payment -->
+  <div class="mb-4 p-4 text-center">
+    <p class="text-base mb-2">💳 <b>Payment Account (Bizolve)</b></p>
+    <p id="payAcc" class="text-lg font-bold mb-3">Account Details Pending</p>
+    <button onclick="copyAcc()" class="bg-green-600 px-4 py-2 rounded text-white">Copy</button>
   </div>
 
   <!-- Step 1 -->
-  <div id="step1">
-    <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-2 text-black">
-    <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-2 text-black">
-    <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded">Next</button>
+  <div id="step1" class="px-4">
+    <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-3 text-black rounded">
+    <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-3 text-black rounded">
+    <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Next</button>
   </div>
 
   <!-- Seat Selection -->
-  <div id="seatSection" class="hidden">
-    <h2 class="text-lg font-bold mb-2">Choose Your Seats (Max 5)</h2>
-    <div class="grid md:grid-cols-3 grid-cols-1 gap-6">
+  <div id="seatSection" class="hidden relative px-4 pt-4 pb-6">
+    <h2 class="text-lg font-bold text-center mb-3">Choose Your Seats (Max 5)</h2>
+    <div class="grid grid-cols-1 gap-6">
       <div>
         <h3 class="text-blue-300 font-semibold mb-1 text-center">Screen A</h3>
         <div id="screenA" class="screenA"></div>
@@ -70,7 +68,7 @@
       </div>
     </div>
     <div id="namesArea" class="mt-4"></div>
-    <button onclick="submitBooking()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Submit Booking</button>
+    <button onclick="submitBooking()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded w-full">Submit Booking</button>
   </div>
 
 <script type="module">
@@ -93,13 +91,14 @@ const screens = { screenA: { rows: 9, cols: 9 }, screenB: { rows: 10, cols: 10 }
 let selectedSeats = [];
 
 window.copyAcc = () => {
-  navigator.clipboard.writeText(document.getElementById("payAcc").textContent).then(()=>alert("Account number copied!"));
+  const text = document.getElementById("payAcc").textContent;
+  navigator.clipboard.writeText(text).then(()=>alert("Account copied!"));
 };
 
 window.proceedToSeats = () => {
   const name = document.getElementById("fullName").value.trim();
   const phone = document.getElementById("phone").value.trim();
-  if (!name || !/^([79])\d{6}$/.test(phone)) return alert("❌ Enter valid full name and contact number starting with 7 or 9");
+  if (!name || !/^([79])\d{6}$/.test(phone)) return alert("❌ Enter valid name and contact (7xxxxxxx or 9xxxxxxx)");
   document.getElementById("step1").classList.add("hidden");
   document.getElementById("seatSection").classList.remove("hidden");
 };
@@ -146,7 +145,9 @@ function toggleSelect(seatId) {
 function updateNamesArea() {
   const area = document.getElementById("namesArea");
   area.innerHTML = selectedSeats.map((s, i) => `
-    <div class="my-1">${s.seatId}: <input placeholder="Name for seat" class="border p-1 w-64 text-black" data-index="${i}" value="${s.name || ''}"></div>
+    <div class="my-1">${s.seatId}: 
+      <input placeholder="Name for seat" class="border p-1 w-64 text-black rounded" data-index="${i}" value="${s.name || ''}">
+    </div>
   `).join("");
   area.querySelectorAll("input").forEach(input => {
     input.addEventListener("input", e => selectedSeats[+e.target.dataset.index].name = e.target.value.trim());
