@@ -38,7 +38,9 @@
 
   <!-- Pre-Booking Instructions -->
   <div id="instructions" class="bg-white/20 p-4 rounded mb-4">
-    <p class="mb-2">🎥 Reserve your seats early.</p>
+    <p class="mb-2 text-lg font-bold">🎥 Loabin...? - The Movie</p>
+    <p class="mb-2">📍 Venue: <b>Miladhoo Youth Center</b></p>
+    <p class="mb-2">📅 Date: <b>22nd August 2025 (Friday Night)</b></p>
     <p class="mb-2">✅ Ticket Price: <b>150/- per ticket</b></p>
     <p class="mb-2">📤 Booker is fully responsible for all seats booked and must make full payment.</p>
     <p class="mb-2">🟩 Maximum of <b>5 seats</b> allowed per booking.</p>
@@ -47,10 +49,31 @@
       <p id="payAcc" class="mb-2">7730000654882 (BIZOLVE)</p>
       <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white">Copy Account</button>
     </div>
+
+    <!-- Trailer Section with Overlay -->
+    <div id="trailerSection" class="mt-6 text-center">
+      <p class="font-semibold mb-2">🎬 Official Trailer</p>
+      <div class="relative w-full max-w-lg mx-auto" style="padding-bottom: 56.25%; background:#000;">
+        <div id="trailerOverlay" 
+             class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/70 text-white rounded">
+          <p class="mb-3">Watch the Loabin...? Trailer</p>
+          <button onclick="playTrailer()" class="bg-red-600 px-4 py-2 rounded mb-3">▶ Play Trailer</button>
+          <button onclick="skipToBooking()" class="bg-green-600 px-4 py-2 rounded">➡ Skip to Booking</button>
+        </div>
+        <iframe id="trailerFrame" 
+                class="absolute top-0 left-0 w-full h-full rounded hidden"
+                src=""
+                title="Loabin...? Trailer"
+                frameborder="0"
+                allow="autoplay; encrypted-media"
+                allowfullscreen>
+        </iframe>
+      </div>
+    </div>
   </div>
 
   <!-- Step 1 -->
-  <div id="step1" class="mb-4">
+  <div id="step1" class="hidden mb-4">
     <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-3 text-black rounded">
     <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-3 text-black rounded">
     <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Next</button>
@@ -100,12 +123,24 @@ window.copyAcc = () => {
   navigator.clipboard.writeText("7730000654882 (BIZOLVE)").then(()=>alert("Account number copied!"));
 };
 
+window.playTrailer = () => {
+  document.getElementById('trailerOverlay').classList.add('hidden');
+  const frame = document.getElementById('trailerFrame');
+  frame.src = "https://www.youtube.com/embed/-s63WVjQ_O4?autoplay=1&mute=1&rel=0";
+  frame.classList.remove('hidden');
+};
+
+window.skipToBooking = () => {
+  document.getElementById("instructions").classList.add("hidden");
+  document.getElementById("step1").classList.remove("hidden");
+  window.scrollTo({ top: document.getElementById("step1").offsetTop, behavior: 'smooth' });
+};
+
 window.proceedToSeats = () => {
   const name = document.getElementById("fullName").value.trim();
   const phone = document.getElementById("phone").value.trim();
   if (!name || !/^([79])\d{6}$/.test(phone)) return alert("❌ Enter valid name and contact (7xxxxxxx or 9xxxxxxx)");
   document.getElementById("step1").classList.add("hidden");
-  document.getElementById("instructions").classList.add("hidden");
   document.getElementById("seatSection").classList.remove("hidden");
 };
 
