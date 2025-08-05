@@ -16,22 +16,23 @@
   </style>
 </head>
 <body class="bg-green-50 p-6">
-  <div class="max-w-xl mx-auto bg-white shadow p-6 rounded">
+  <div class="max-w-xl mx-auto bg-white shadow p-6 rounded text-center">
     <h1 class="text-2xl font-bold text-green-600 mb-4">🎉 Booking Successful</h1>
-    <div class="mb-4">
+    
+    <div class="mb-4 text-left">
       <p class="font-medium">👤 Booked By: <span id="fullName"></span></p>
       <p class="font-medium">📞 Contact: <span id="phone"></span></p>
     </div>
 
-    <div id="bookingDetails" class="mb-4 bg-gray-100 p-4 rounded text-sm"></div>
+    <div id="bookingDetails" class="mb-4 bg-gray-100 p-4 rounded text-sm text-left"></div>
 
-    <div class="mb-4">
+    <div class="mb-4 text-left">
       <p class="font-semibold">💰 Ticket Price: 150 MVR</p>
       <p class="font-semibold">🎫 Total Tickets: <span id="totalTickets"></span></p>
       <p class="font-semibold">💵 Total Amount: <span id="totalAmount"></span> MVR</p>
     </div>
 
-    <div class="mb-4">
+    <div class="mb-4 text-left">
       <p class="mb-1">📤 Please transfer the amount to:</p>
       <div class="flex items-center space-x-2">
         <span class="font-mono">7730000654882 – BIZOLVE</span>
@@ -40,11 +41,25 @@
       <p class="mt-1 text-sm text-gray-600">📨 Viber to 7981238 (irfan)</p>
     </div>
 
-    <p class="text-sm text-red-600 mb-2">⚠️ Your booking will only be confirmed after payment is sent and verified. Please complete the payment within 20 minutes.</p>
+    <p class="text-sm text-red-600 mb-2">
+      ⚠️ Your booking will only be confirmed after payment is sent and verified. 
+      Please complete the payment within <b>60 minutes</b> of booking.
+    </p>
 
-    <p class="text-sm mt-4 text-blue-700">📸 Please take a screenshot of this page for your reference.</p>
+    <p class="text-sm mt-4 text-blue-700">
+      📸 Please take a screenshot of this page for your reference.
+    </p>
 
-    <button onclick="window.location.href='index.html'" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">🎫 Book Another Ticket</button>
+    <!-- New Bottom Section -->
+    <div class="mt-6 text-center">
+      <h2 class="text-xl font-bold text-green-700 mb-2">Thank You and See You at the Show!</h2>
+      <p class="mb-1 font-medium">🎥 Loabin...? - The Movie</p>
+      <p class="mb-1">📅 22nd August 2025 (Friday Night)</p>
+      <p class="mb-4">📍 Miladhoo Youth Center</p>
+      <button onclick="window.location.href='index.html'" class="bg-blue-600 text-white px-4 py-2 rounded">
+        🎫 Book Another Ticket
+      </button>
+    </div>
   </div>
 
   <script>
