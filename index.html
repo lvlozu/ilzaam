@@ -43,44 +43,35 @@
     .text-center h2.text-outline { color: #60a5fa; font-weight: 800; } /* Kanbulo – The Movie → light blue + bolder */
     .text-center h3.text-outline { color: #d946ef; } /* Booking For N. Miladhoo → magenta */
 
-    /* Pre-booking instructions: left-aligned, readable, no outline */
-    #instructions { text-align: left; max-width: 42rem; margin-left: auto; margin-right: auto; line-height: 1.75; }
-    #instructions .text-outline {
-      -webkit-text-stroke: 0;
-      text-stroke: 0;
-      color: #111827;      /* slate-900 */
-      font-weight: 600;
-    }
-    #instructions p.text-lg { font-size: 1.125rem; }
-    /* Keep trailer section centered even though instructions are left-aligned */
-    #instructions #trailerSection { text-align: center; }
-  </style>
-</head>
-<body class="min-h-screen p-4">
+  <!-- Pre-Booking Instructions -->
+  <div id="instructions" class="p-4 rounded mb-4 max-w-2xl mx-auto">
+    <ul class="space-y-3 text-yellow-400 font-semibold text-base leading-relaxed">
+      <li class="flex items-start">
+        <span class="mr-2">📍</span> Venue: Miladhoo Youth Center
+      </li>
+      <li class="flex items-start">
+        <span class="mr-2">📅</span> Date: 12th September 2025 (Friday Night)
+      </li>
+      <li class="flex items-start">
+        <span class="mr-2">✅</span> Ticket Price: 150/- per ticket
+      </li>
+      <li class="flex items-start">
+        <span class="mr-2">📤</span> Booker is fully responsible for all seats booked and must make full payment.
+      </li>
+      <li class="flex items-start">
+        <span class="mr-2">🟩</span> Maximum of 5 seats allowed per booking.
+      </li>
+    </ul>
 
-  <!-- Header -->
-  <div class="text-center mb-4">
-    <h1 class="text-2xl font-bold text-outline mb-1">Welcome to</h1>
-    <h2 class="text-xl font-bold text-outline mb-1">Kanbulo - The Movie</h2>
-    <h3 class="text-lg font-medium text-outline mb-4">Booking For N. Miladhoo</h3>
-  </div>
-
-  <!-- Pre-Booking Instructions (left-aligned, readable, no overlay/blur) -->
-  <div id="instructions" class="p-4 rounded mb-4 space-y-2">
-    <p class="mb-2 text-lg font-bold text-outline">📍 Venue: Miladhoo Youth Center</p>
-    <p class="mb-2 text-outline">📅 Date: 12th September 2025 (Friday Night)</p>
-    <p class="mb-2 text-outline">✅ Ticket Price: 150/- per ticket</p>
-    <p class="mb-2 text-outline">📤 Booker is fully responsible for all seats booked and must make full payment.</p>
-    <p class="mb-2 text-outline">🟩 Maximum of 5 seats allowed per booking.</p>
-    <div class="mt-3">
-      <p class="font-semibold mb-1 text-outline">💳 Payment Account</p>
-      <p id="payAcc" class="mb-2 text-outline">7730000654882 (BIZOLVE)</p>
-      <button onclick="copyAcc()" class="bg-green-600 px-2 py-1 rounded text-white text-sm">Copy</button>
+    <div class="mt-6 text-yellow-400">
+      <p class="font-semibold mb-2">💳 Payment Account</p>
+      <p id="payAcc" class="mb-2 font-mono">7730000654882 (BIZOLVE)</p>
+      <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white text-sm">Copy</button>
     </div>
 
     <!-- Trailer Section -->
-    <div id="trailerSection" class="mt-6 text-center">
-      <p class="font-semibold mb-2 text-outline" style="-webkit-text-stroke:0;text-stroke:0;color:#111827">🎬 Official Trailer</p>
+    <div id="trailerSection" class="mt-8 text-center">
+      <p class="font-semibold mb-3 text-yellow-400">🎬 Official Trailer</p>
       <div class="relative w-full max-w-lg mx-auto" style="padding-bottom: 56.25%; background:#000;">
         <div id="trailerOverlay" 
              class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/70 text-white rounded">
@@ -104,6 +95,7 @@
       </button>
     </div>
   </div>
+
 
   <!-- Step 1 -->
   <div id="step1" class="hidden mb-4 text-center">
