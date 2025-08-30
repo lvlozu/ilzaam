@@ -6,16 +6,20 @@
   <title>✅ Booking Confirmed</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Default to JPG so there’s never a white screen;
+       once BG.gif loads, we switch to it via body.gif-bg */
     body::before {
       content: "";
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: url('BG.jpg') center/cover no-repeat; /* unchanged on purpose */
-      filter: blur(3px);
-      opacity: 0.6;
+      inset: 0;
+      background: url('BG.jpg') center/cover no-repeat;
       z-index: -1;
     }
+    body.gif-bg::before {
+      background-image: url('BG.gif?v=2'); /* cache-buster in case of stale cache */
+    }
+
+    /* Removed blur/opacity layer entirely */
     .copy-btn {
       cursor: pointer;
       background-color: #e0e7ff;
@@ -26,7 +30,7 @@
   </style>
 </head>
 <body class="p-6 text-gray-800">
-  <div class="max-w-xl mx-auto bg-white/80 backdrop-blur shadow p-6 rounded">
+  <div class="max-w-xl mx-auto shadow p-6 rounded bg-white/80">
     <h1 class="text-2xl font-bold text-green-600 mb-4 text-center">🎉 Booking Successful</h1>
     
     <div class="mb-4">
@@ -67,13 +71,13 @@
     </div>
 
     <div class="text-left text-gray-900 mb-6">
-      <p class="font-medium">🎥 Kanbulo - The Movie</p> <!-- updated -->
-      <p>📅 12th September 2025 (Friday Night)</p>      <!-- updated -->
+      <p class="font-medium">🎥 Kanbulo - The Movie</p>
+      <p>📅 12th September 2025 (Friday Night)</p>
       <p>📍 Miladhoo Youth Center</p>
     </div>
 
     <div class="text-center">
-      <!-- updated to skip landing/trailer -->
+      <!-- skip landing/trailer on rebook -->
       <a href="index.html#book" class="bg-blue-600 text-white px-4 py-2 rounded inline-block">
         🎫 Book Another Ticket
       </a>
@@ -81,6 +85,14 @@
   </div>
 
   <script>
+    // Progressive background: swap to GIF only after it loads (prevents blank/white)
+    (function(){
+      const img = new Image();
+      img.onload = () => document.body.classList.add('gif-bg');
+      img.onerror = () => console.warn('BG.gif failed to load (check path/case). Using BG.jpg fallback.');
+      img.src = 'BG.gif?v=2';
+    })();
+
     const fullName = localStorage.getItem("bookingFullName") || "N/A";
     const phone = localStorage.getItem("bookingPhone") || "N/A";
     const selectedSeats = JSON.parse(localStorage.getItem("selectedSeats")) || [];
@@ -92,7 +104,7 @@
 
     document.getElementById("bookingDetails").innerHTML = selectedSeats.map(s => {
       const screenName = s.seatId
-        .replace('screenA', 'Screen A')  // fixed to match your seat IDs
+        .replace('screenA', 'Screen A')
         .replace('screenB', 'Screen B')
         .replace('screenC', 'Screen C');
       return `<div>🎫 ${screenName} – ${s.name}</div>`;
