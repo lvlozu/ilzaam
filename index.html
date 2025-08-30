@@ -29,15 +29,31 @@
     .screenB .seat { border: 2px solid #f472b6; }
     .screenC .seat { border: 2px solid #34d399; }
 
-    /* Cinematic title: black fill with white stroke */
+    /* Base cinematic outline: thinner (1px ~ 50% of old 2px) + yellow fill */
     .text-outline {
-      color: #000;
-      -webkit-text-stroke: 2px #fff;
-      text-stroke: 2px #fff;
+      color: #ffd400;                 /* yellow fill */
+      -webkit-text-stroke: 1px #000;  /* thin black outline */
+      text-stroke: 1px #000;
       letter-spacing: 0.06em;
       font-weight: 700;
       font-family: "Cinzel", "Trajan Pro", Georgia, serif;
     }
+    /* Heading-specific fills with thin black outline preserved */
+    .text-center h1.text-outline { color: #e11d48; } /* Welcome to → red */
+    .text-center h2.text-outline { color: #60a5fa; font-weight: 800; } /* Kanbulo – The Movie → light blue + bolder */
+    .text-center h3.text-outline { color: #d946ef; } /* Booking For N. Miladhoo → magenta */
+
+    /* Pre-booking instructions: left-aligned, readable, no outline */
+    #instructions { text-align: left; max-width: 42rem; margin-left: auto; margin-right: auto; line-height: 1.75; }
+    #instructions .text-outline {
+      -webkit-text-stroke: 0;
+      text-stroke: 0;
+      color: #111827;      /* slate-900 */
+      font-weight: 600;
+    }
+    #instructions p.text-lg { font-size: 1.125rem; }
+    /* Keep trailer section centered even though instructions are left-aligned */
+    #instructions #trailerSection { text-align: center; }
   </style>
 </head>
 <body class="min-h-screen p-4">
@@ -49,8 +65,8 @@
     <h3 class="text-lg font-medium text-outline mb-4">Booking For N. Miladhoo</h3>
   </div>
 
-  <!-- Pre-Booking Instructions (no blur / no white overlay) -->
-  <div id="instructions" class="p-4 rounded mb-4 text-center">
+  <!-- Pre-Booking Instructions (left-aligned, readable, no overlay/blur) -->
+  <div id="instructions" class="p-4 rounded mb-4 space-y-2">
     <p class="mb-2 text-lg font-bold text-outline">📍 Venue: Miladhoo Youth Center</p>
     <p class="mb-2 text-outline">📅 Date: 12th September 2025 (Friday Night)</p>
     <p class="mb-2 text-outline">✅ Ticket Price: 150/- per ticket</p>
@@ -64,7 +80,7 @@
 
     <!-- Trailer Section -->
     <div id="trailerSection" class="mt-6 text-center">
-      <p class="font-semibold mb-2 text-outline">🎬 Official Trailer</p>
+      <p class="font-semibold mb-2 text-outline" style="-webkit-text-stroke:0;text-stroke:0;color:#111827">🎬 Official Trailer</p>
       <div class="relative w-full max-w-lg mx-auto" style="padding-bottom: 56.25%; background:#000;">
         <div id="trailerOverlay" 
              class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/70 text-white rounded">
