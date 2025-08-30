@@ -6,8 +6,7 @@
   <title>✅ Booking Confirmed</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Default to JPG so there’s never a white screen;
-       once BG.gif loads, we switch to it via body.gif-bg */
+    /* JPG default; swap to GIF when loaded (no blur / no white overlay) */
     body::before {
       content: "";
       position: fixed;
@@ -16,10 +15,9 @@
       z-index: -1;
     }
     body.gif-bg::before {
-      background-image: url('BG.gif?v=2'); /* cache-buster in case of stale cache */
+      background-image: url('BG.gif?v=2');
     }
 
-    /* Removed blur/opacity layer entirely */
     .copy-btn {
       cursor: pointer;
       background-color: #e0e7ff;
@@ -30,7 +28,8 @@
   </style>
 </head>
 <body class="p-6 text-gray-800">
-  <div class="max-w-xl mx-auto shadow p-6 rounded bg-white/80">
+  <!-- removed bg-white/80 and backdrop-blur to eliminate white overlay -->
+  <div class="max-w-xl mx-auto shadow p-6 rounded">
     <h1 class="text-2xl font-bold text-green-600 mb-4 text-center">🎉 Booking Successful</h1>
     
     <div class="mb-4">
@@ -77,8 +76,10 @@
     </div>
 
     <div class="text-center">
-      <!-- skip landing/trailer on rebook -->
-      <a href="index.html#book" class="bg-blue-600 text-white px-4 py-2 rounded inline-block">
+      <!-- Set a flag + hash so index skips landing on first load -->
+      <a href="index.html#book"
+         onclick="sessionStorage.setItem('skipLanding','1')"
+         class="bg-blue-600 text-white px-4 py-2 rounded inline-block">
         🎫 Book Another Ticket
       </a>
     </div>
