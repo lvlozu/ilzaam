@@ -11,7 +11,7 @@
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: url('BG.jpg') center/cover no-repeat;
+      background: url('BG.jpg') center/cover no-repeat; /* unchanged on purpose */
       filter: blur(3px);
       opacity: 0.6;
       z-index: -1;
@@ -67,15 +67,16 @@
     </div>
 
     <div class="text-left text-gray-900 mb-6">
-      <p class="font-medium">🎥 Loabin...? - The Movie</p>
-      <p>📅 29th August 2025 (Friday Night)</p>
+      <p class="font-medium">🎥 Kanbulo - The Movie</p> <!-- updated -->
+      <p>📅 12th September 2025 (Friday Night)</p>      <!-- updated -->
       <p>📍 Miladhoo Youth Center</p>
     </div>
 
     <div class="text-center">
-      <button onclick="window.location.href='index.html'" class="bg-blue-600 text-white px-4 py-2 rounded">
+      <!-- updated to skip landing/trailer -->
+      <a href="index.html#book" class="bg-blue-600 text-white px-4 py-2 rounded inline-block">
         🎫 Book Another Ticket
-      </button>
+      </a>
     </div>
   </div>
 
@@ -91,9 +92,9 @@
 
     document.getElementById("bookingDetails").innerHTML = selectedSeats.map(s => {
       const screenName = s.seatId
-        .replace('clusterA', 'Screen A')
-        .replace('clusterB', 'Screen B')
-        .replace('clusterC', 'Screen C');
+        .replace('screenA', 'Screen A')  // fixed to match your seat IDs
+        .replace('screenB', 'Screen B')
+        .replace('screenC', 'Screen C');
       return `<div>🎫 ${screenName} – ${s.name}</div>`;
     }).join("");
 
