@@ -6,16 +6,43 @@
   <title>✅ Booking Confirmed</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* JPG default; swap to GIF when loaded (no blur / no white overlay) */
+    /* Background layers: JPG base + GIF swap; place BG below content */
     body::before {
       content: "";
       position: fixed;
       inset: 0;
       background: url('BG.jpg') center/cover no-repeat;
-      z-index: -1;
+      z-index: -2; /* sits under the scrim */
     }
     body.gif-bg::before {
-      background-image: url('BG.gif?v=2');
+      background-image: url('BG.gif?v=2'); /* cache-buster */
+    }
+
+    /* Soft global scrim (not a box): boosts contrast but keeps BG visible */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      /* combination of radial vignette + gentle top/bottom gradient */
+      background:
+        radial-gradient(ellipse at center,
+          rgba(0,0,0,0) 0%,
+          rgba(0,0,0,0.22) 55%,
+          rgba(0,0,0,0.45) 100%),
+        linear-gradient(to bottom,
+          rgba(0,0,0,0.35) 0%,
+          rgba(0,0,0,0) 30%,
+          rgba(0,0,0,0) 70%,
+          rgba(0,0,0,0.35) 100%);
+      pointer-events: none; /* no clicks blocked */
+      z-index: -1;          /* above BG, below content */
+    }
+
+    /* Readability boost for text only (no blur): layered text-shadow */
+    .readable, .readable * {
+      text-shadow:
+        0 1px 2px rgba(0,0,0,0.85),
+        0 0 12px rgba(0,0,0,0.55);
     }
 
     .copy-btn {
@@ -27,17 +54,18 @@
     }
   </style>
 </head>
-<body class="p-6 text-gray-800">
-  <!-- removed bg-white/80 and backdrop-blur to eliminate white overlay -->
-  <div class="max-w-xl mx-auto shadow p-6 rounded">
-    <h1 class="text-2xl font-bold text-green-600 mb-4 text-center">🎉 Booking Successful</h1>
+<body class="p-6 text-gray-100"> <!-- slight lighter text base -->
+
+  <!-- Removed any white/blur boxes. Added .readable for contrast -->
+  <div class="max-w-xl mx-auto p-6 rounded shadow readable">
+    <h1 class="text-2xl font-bold text-green-400 mb-4 text-center">🎉 Booking Successful</h1>
     
     <div class="mb-4">
       <p class="font-medium">👤 Booked By: <span id="fullName"></span></p>
       <p class="font-medium">📞 Contact: <span id="phone"></span></p>
     </div>
 
-    <div id="bookingDetails" class="mb-4 bg-gray-100 p-4 rounded text-sm"></div>
+    <div id="bookingDetails" class="mb-4 bg-black/20 p-4 rounded text-sm"></div>
 
     <div class="mb-4">
       <p class="font-semibold">💰 Ticket Price: 150 MVR</p>
@@ -51,25 +79,25 @@
         <span class="font-mono">7730000654882 – BIZOLVE</span>
         <button class="copy-btn" onclick="copyAccount()">📋 Copy</button>
       </div>
-      <p class="mt-1 text-sm text-gray-700">📞 Viber to 7981238 (irfan)</p>
+      <p class="mt-1 text-sm">📞 Viber to 7981238 (irfan)</p>
     </div>
 
-    <p class="text-sm text-red-600 mb-2">
+    <p class="text-sm text-red-300 mb-2">
       ⚠️ Your booking will only be confirmed after payment is sent and verified. 
       Please complete the payment within <b>60 minutes</b> of booking.
     </p>
 
-    <p class="text-sm mt-4 text-blue-700">
+    <p class="text-sm mt-4">
       📸 Please take a screenshot of this page for your reference.
     </p>
 
     <!-- Bottom Thank You Section -->
     <div class="mt-8 text-center">
-      <h2 class="text-2xl font-bold text-green-700 leading-tight">Thank You</h2>
-      <h3 class="text-xl font-semibold text-green-600 mb-4">See You at The Movie</h3>
+      <h2 class="text-2xl font-bold text-green-300 leading-tight">Thank You</h2>
+      <h3 class="text-xl font-semibold text-green-200 mb-4">See You at The Movie</h3>
     </div>
 
-    <div class="text-left text-gray-900 mb-6">
+    <div class="text-left mb-6">
       <p class="font-medium">🎥 Kanbulo - The Movie</p>
       <p>📅 12th September 2025 (Friday Night)</p>
       <p>📍 Miladhoo Youth Center</p>
@@ -79,7 +107,7 @@
       <!-- Set a flag + hash so index skips landing on first load -->
       <a href="index.html#book"
          onclick="sessionStorage.setItem('skipLanding','1')"
-         class="bg-blue-600 text-white px-4 py-2 rounded inline-block">
+         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded inline-block">
         🎫 Book Another Ticket
       </a>
     </div>
