@@ -280,12 +280,22 @@ window.submitBooking = () => {
 };
 
 renderScreens();
-onValue(ref(db, "bookings"), snap => {
-  const data = snap.val();
-  if (!data) return;
+
+const bookingsRef = ref(db, "bookings");
+onValue(bookingsRef, snap => {
+  // 1) Clear previous markers so UI reflects the latest snapshot
+  document.querySelectorAll(".seat.booked, .seat.confirmed").forEach(el => {
+    el.classList.remove("booked", "confirmed");
+  });
+
+  // 2) Re-apply from the current data
+  const data = snap.val() || {};
   for (const b of Object.values(data)) {
     const el = document.querySelector(`[data-id='${b.seatId}']`);
-    if (el) el.classList.add(b.status);
+    if (!el) continue;
+    if (b.status === "booked" || b.status === "confirmed") {
+      el.classList.add(b.status);
+    }
   }
 });
 
