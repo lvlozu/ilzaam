@@ -6,16 +6,40 @@
   <title>Kanbulo - The Movie | Booking For N. Miladhoo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* JPG default so there's never a white flash; GIF swaps in when loaded */
+    /* Background: JPG default (no white flash) -> swap to GIF when loaded */
     body::before {
       content: "";
       position: fixed;
       inset: 0;
       background: url('BG.jpg') center/cover no-repeat;
-      z-index: -1;
+      z-index: -2; /* below scrim */
     }
-    body.gif-bg::before {
-      background-image: url('BG.gif?v=2'); /* cache-buster */
+    body.gif-bg::before { background-image: url('BG.gif?v=2'); }
+
+    /* Soft scrim/vignette for contrast (not a box, no blur) */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at center,
+          rgba(0,0,0,0) 0%,
+          rgba(0,0,0,0.22) 55%,
+          rgba(0,0,0,0.45) 100%),
+        linear-gradient(to bottom,
+          rgba(0,0,0,0.35) 0%,
+          rgba(0,0,0,0) 30%,
+          rgba(0,0,0,0) 70%,
+          rgba(0,0,0,0.35) 100%);
+      pointer-events: none;
+      z-index: -1; /* over BG, under content */
+    }
+
+    /* Readability boost (like thankyou page): tasteful text shadow */
+    .readable, .readable * {
+      text-shadow:
+        0 1px 2px rgba(0,0,0,0.85),
+        0 0 12px rgba(0,0,0,0.55);
     }
 
     .seat {
@@ -29,7 +53,7 @@
     .screenB .seat { border: 2px solid #f472b6; }
     .screenC .seat { border: 2px solid #34d399; }
 
-    /* Base cinematic outline: thinner (1px ~ 50% of old 2px) + yellow fill */
+    /* Base cinematic outline: thinner (1px) + yellow fill */
     .text-outline {
       color: #ffd400;                 /* yellow fill */
       -webkit-text-stroke: 1px #000;  /* thin black outline */
@@ -38,56 +62,46 @@
       font-weight: 700;
       font-family: "Cinzel", "Trajan Pro", Georgia, serif;
     }
-    /* Heading-specific fills with thin black outline preserved */
-    .text-center h1.text-outline { color: #e11d48; }             /* Welcome to → red */
-    .text-center h2.text-outline { color: #60a5fa; font-weight: 800; } /* Kanbulo – The Movie → light blue + bolder */
-    .text-center h3.text-outline { color: #d946ef; }             /* Booking For N. Miladhoo → magenta */
+    /* Heading-specific fills (outline preserved) */
+    .text-center h1.text-outline { color: #e11d48; }                 /* Welcome to → red */
+    .text-center h2.text-outline { color: #60a5fa; font-weight: 800; }/* Kanbulo – The Movie → light blue + bolder */
+    .text-center h3.text-outline { color: #d946ef; }                 /* Booking For N. Miladhoo → magenta */
 
-    /* Pre-booking instructions: yellow, bulleted, readable */
-    #instructions { text-align: left; max-width: 42rem; margin-left:auto; margin-right:auto; }
+    /* Uniform yellow, tight, icon-bulleted instruction list */
+    #instructions { text-align: left; max-width: 42rem; margin-left: auto; margin-right: auto; }
     #instructions ul { margin: 0; padding: 0; }
-    #instructions ul li { list-style: none; display:flex; align-items:flex-start; }
-    #instructions ul li span { flex-shrink:0; }
+    #instructions ul li { list-style: none; display: flex; align-items: flex-start; }
+    #instructions ul li span { flex-shrink: 0; }
   </style>
 </head>
-<body class="min-h-screen p-4">
+<body class="min-h-screen p-4 text-gray-100">
 
   <!-- Header -->
-  <div class="text-center mb-4">
+  <div class="text-center mb-4 readable">
     <h1 class="text-2xl font-bold text-outline mb-1">Welcome to</h1>
     <h2 class="text-xl font-bold text-outline mb-1">Kanbulo - The Movie</h2>
     <h3 class="text-lg font-medium text-outline mb-4">Booking For N. Miladhoo</h3>
   </div>
 
-  <!-- Pre-Booking Instructions (yellow, left-aligned, icon-bulleted) -->
-  <div id="instructions" class="p-4 rounded mb-4 max-w-2xl mx-auto">
-    <ul class="space-y-3 text-yellow-400 font-semibold text-base leading-relaxed">
-      <li class="flex items-start">
-        <span class="mr-2">📍</span> Venue: Miladhoo Youth Center
-      </li>
-      <li class="flex items-start">
-        <span class="mr-2">📅</span> Date: 12th September 2025 (Friday Night)
-      </li>
-      <li class="flex items-start">
-        <span class="mr-2">✅</span> Ticket Price: 150/- per ticket
-      </li>
-      <li class="flex items-start">
-        <span class="mr-2">📤</span> Booker is fully responsible for all seats booked and must make full payment.
-      </li>
-      <li class="flex items-start">
-        <span class="mr-2">🟩</span> Maximum of 5 seats allowed per booking.
-      </li>
+  <!-- Pre-Booking Instructions (yellow, uniform list, tighter spacing, readable) -->
+  <div id="instructions" class="p-4 rounded mb-4 max-w-2xl mx-auto readable">
+    <ul class="space-y-1 text-yellow-400 font-semibold text-base leading-snug">
+      <li class="flex items-start"><span class="mr-2">📍</span> Venue: Miladhoo Youth Center</li>
+      <li class="flex items-start"><span class="mr-2">📅</span> Date: 12th September 2025 (Friday Night)</li>
+      <li class="flex items-start"><span class="mr-2">✅</span> Ticket Price: 150/- per ticket</li>
+      <li class="flex items-start"><span class="mr-2">📤</span> Booker is fully responsible for all seats booked and must make full payment.</li>
+      <li class="flex items-start"><span class="mr-2">🟩</span> Maximum of 5 seats allowed per booking.</li>
     </ul>
 
-    <div class="mt-6 text-yellow-400">
-      <p class="font-semibold mb-2">💳 Payment Account</p>
+    <div class="mt-4 text-yellow-400">
+      <p class="font-semibold mb-1">💳 Payment Account</p>
       <p id="payAcc" class="mb-2 font-mono">7730000654882 (BIZOLVE)</p>
       <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white text-sm">Copy</button>
     </div>
 
-    <!-- Trailer Section -->
-    <div id="trailerSection" class="mt-8 text-center">
-      <p class="font-semibold mb-3 text-yellow-400">🎬 Official Trailer</p>
+    <!-- Trailer Section (centered) -->
+    <div id="trailerSection" class="mt-6 text-center">
+      <p class="font-semibold mb-2 text-yellow-400">🎬 Official Trailer</p>
       <div class="relative w-full max-w-lg mx-auto" style="padding-bottom: 56.25%; background:#000;">
         <div id="trailerOverlay" 
              class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/70 text-white rounded">
@@ -113,14 +127,14 @@
   </div>
 
   <!-- Step 1 -->
-  <div id="step1" class="hidden mb-4 text-center">
+  <div id="step1" class="hidden mb-4 text-center readable">
     <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-3 text-black rounded">
     <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-3 text-black rounded">
     <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Next</button>
   </div>
 
   <!-- Seat Selection -->
-  <div id="seatSection" class="hidden">
+  <div id="seatSection" class="hidden readable">
     <h2 class="text-lg font-bold text-center mb-3 text-outline">Choose Your Seats (Max 5)</h2>
     <div class="grid grid-cols-1 gap-6">
       <div>
@@ -275,7 +289,7 @@ onValue(ref(db, "bookings"), snap => {
   }
 });
 
-// --- Progressive GIF loader (prevents blank if GIF slow or missing)
+// Progressive GIF loader (prevents blank if GIF slow/missing)
 (function(){
   const img = new Image();
   img.onload  = () => document.body.classList.add('gif-bg');
@@ -283,7 +297,7 @@ onValue(ref(db, "bookings"), snap => {
   img.src = 'BG.gif?v=2';
 })();
 
-// --- Auto-skip landing if coming from thankyou (index.html#book) or flag
+// Auto-skip landing if coming from thankyou (index.html#book) or flag
 window.addEventListener("DOMContentLoaded", () => {
   if (location.hash === "#book" || sessionStorage.getItem("skipLanding") === "1") {
     skipToBooking();
