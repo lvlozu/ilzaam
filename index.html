@@ -39,11 +39,27 @@
       font-family: "Cinzel", "Trajan Pro", Georgia, serif;
     }
     /* Heading-specific fills with thin black outline preserved */
-    .text-center h1.text-outline { color: #e11d48; } /* Welcome to → red */
+    .text-center h1.text-outline { color: #e11d48; }             /* Welcome to → red */
     .text-center h2.text-outline { color: #60a5fa; font-weight: 800; } /* Kanbulo – The Movie → light blue + bolder */
-    .text-center h3.text-outline { color: #d946ef; } /* Booking For N. Miladhoo → magenta */
+    .text-center h3.text-outline { color: #d946ef; }             /* Booking For N. Miladhoo → magenta */
 
-  <!-- Pre-Booking Instructions -->
+    /* Pre-booking instructions: yellow, bulleted, readable */
+    #instructions { text-align: left; max-width: 42rem; margin-left:auto; margin-right:auto; }
+    #instructions ul { margin: 0; padding: 0; }
+    #instructions ul li { list-style: none; display:flex; align-items:flex-start; }
+    #instructions ul li span { flex-shrink:0; }
+  </style>
+</head>
+<body class="min-h-screen p-4">
+
+  <!-- Header -->
+  <div class="text-center mb-4">
+    <h1 class="text-2xl font-bold text-outline mb-1">Welcome to</h1>
+    <h2 class="text-xl font-bold text-outline mb-1">Kanbulo - The Movie</h2>
+    <h3 class="text-lg font-medium text-outline mb-4">Booking For N. Miladhoo</h3>
+  </div>
+
+  <!-- Pre-Booking Instructions (yellow, left-aligned, icon-bulleted) -->
   <div id="instructions" class="p-4 rounded mb-4 max-w-2xl mx-auto">
     <ul class="space-y-3 text-yellow-400 font-semibold text-base leading-relaxed">
       <li class="flex items-start">
@@ -95,7 +111,6 @@
       </button>
     </div>
   </div>
-
 
   <!-- Step 1 -->
   <div id="step1" class="hidden mb-4 text-center">
