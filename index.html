@@ -6,15 +6,18 @@
   <title>Kanbulo - The Movie | Booking For N. Miladhoo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* JPG default so there's never a white flash; GIF swaps in when loaded */
     body::before {
       content: "";
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: url('BG.gif') center/cover no-repeat; /* switched to GIF */
-      /* removed blur/opacity overlay */
+      inset: 0;
+      background: url('BG.jpg') center/cover no-repeat;
       z-index: -1;
     }
+    body.gif-bg::before {
+      background-image: url('BG.gif?v=2'); /* cache-buster */
+    }
+
     .seat {
       width: 34px; height: 34px;
       font-size: 12px; border-radius: 4px;
@@ -25,13 +28,15 @@
     .screenA .seat { border: 2px solid #60a5fa; }
     .screenB .seat { border: 2px solid #f472b6; }
     .screenC .seat { border: 2px solid #34d399; }
+
+    /* Cinematic title: black fill with white stroke */
     .text-outline {
-      color: #000;                  /* black fill */
-      -webkit-text-stroke: 2px #fff;/* white border */
-      text-stroke: 2px #fff;        /* unofficial fallback */
+      color: #000;
+      -webkit-text-stroke: 2px #fff;
+      text-stroke: 2px #fff;
       letter-spacing: 0.06em;
       font-weight: 700;
-      font-family: "Cinzel", "Trajan Pro", Georgia, serif; /* cinematic feel */
+      font-family: "Cinzel", "Trajan Pro", Georgia, serif;
     }
   </style>
 </head>
@@ -44,8 +49,8 @@
     <h3 class="text-lg font-medium text-outline mb-4">Booking For N. Miladhoo</h3>
   </div>
 
-  <!-- Pre-Booking Instructions -->
-  <div id="instructions" class="p-4 rounded mb-4 text-center"><!-- removed bg-white/30 & backdrop-blur -->
+  <!-- Pre-Booking Instructions (no blur / no white overlay) -->
+  <div id="instructions" class="p-4 rounded mb-4 text-center">
     <p class="mb-2 text-lg font-bold text-outline">📍 Venue: Miladhoo Youth Center</p>
     <p class="mb-2 text-outline">📅 Date: 12th September 2025 (Friday Night)</p>
     <p class="mb-2 text-outline">✅ Ticket Price: 150/- per ticket</p>
@@ -57,7 +62,7 @@
       <button onclick="copyAcc()" class="bg-green-600 px-2 py-1 rounded text-white text-sm">Copy</button>
     </div>
 
-    <!-- Trailer Section with Overlay -->
+    <!-- Trailer Section -->
     <div id="trailerSection" class="mt-6 text-center">
       <p class="font-semibold mb-2 text-outline">🎬 Official Trailer</p>
       <div class="relative w-full max-w-lg mx-auto" style="padding-bottom: 56.25%; background:#000;">
@@ -139,7 +144,7 @@ window.copyAcc = () => {
 window.playTrailer = () => {
   document.getElementById('trailerOverlay').classList.add('hidden');
   const frame = document.getElementById('trailerFrame');
-  frame.src = "https://www.youtube.com/embed/x2QU5uMFWJs?rel=0"; // updated trailer
+  frame.src = "https://www.youtube.com/embed/x2QU5uMFWJs?rel=0"; // new trailer
   frame.classList.remove('hidden');
   document.getElementById('toBookingAfterTrailer').classList.remove('hidden');
 };
@@ -148,6 +153,12 @@ window.skipToBooking = () => {
   document.getElementById("instructions").classList.add("hidden");
   document.getElementById("step1").classList.remove("hidden");
   window.scrollTo({ top: document.getElementById("step1").offsetTop, behavior: 'smooth' });
+
+  // optional: clean URL and clear the session flag
+  if (history.replaceState && (location.hash === "#book")) {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  sessionStorage.removeItem("skipLanding");
 };
 
 window.proceedToSeats = () => {
@@ -238,6 +249,21 @@ onValue(ref(db, "bookings"), snap => {
   for (const b of Object.values(data)) {
     const el = document.querySelector(`[data-id='${b.seatId}']`);
     if (el) el.classList.add(b.status);
+  }
+});
+
+// --- Progressive GIF loader (prevents blank if GIF slow or missing)
+(function(){
+  const img = new Image();
+  img.onload  = () => document.body.classList.add('gif-bg');
+  img.onerror = () => console.warn('BG.gif failed to load (path/case?) – using JPG fallback.');
+  img.src = 'BG.gif?v=2';
+})();
+
+// --- Auto-skip landing if coming from thankyou (index.html#book) or flag
+window.addEventListener("DOMContentLoaded", () => {
+  if (location.hash === "#book" || sessionStorage.getItem("skipLanding") === "1") {
+    skipToBooking();
   }
 });
 </script>
