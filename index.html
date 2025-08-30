@@ -35,8 +35,8 @@
       z-index: -1; /* over BG, under content */
     }
 
-    /* Readability boost (like thankyou page): tasteful text shadow */
-    .readable, .readable * {
+    /* Readability boost for headings/body (avoid affecting inputs) */
+    .readable :where(h1,h2,h3,p,li,span,strong,em,small,label,div) {
       text-shadow:
         0 1px 2px rgba(0,0,0,0.85),
         0 0 12px rgba(0,0,0,0.55);
@@ -65,13 +65,18 @@
     /* Heading-specific fills (outline preserved) */
     .text-center h1.text-outline { color: #e11d48; }                 /* Welcome to → red */
     .text-center h2.text-outline { color: #60a5fa; font-weight: 800; }/* Kanbulo – The Movie → light blue + bolder */
-    .text-center h3.text-outline { color: #d946ef; }                 /* Booking For N. Miladhoo → magenta */
 
     /* Uniform yellow, tight, icon-bulleted instruction list */
     #instructions { text-align: left; max-width: 42rem; margin-left: auto; margin-right: auto; }
     #instructions ul { margin: 0; padding: 0; }
     #instructions ul li { list-style: none; display: flex; align-items: flex-start; }
     #instructions ul li span { flex-shrink: 0; }
+
+    /* Trailer wrapper: transparent by default; black ONLY when playing */
+    .videoWrap { position: relative; width: 100%; max-width: 32rem; margin: 0 auto; background: transparent; }
+    .videoWrap::before { content: ""; display: block; padding-bottom: 56.25%; }
+    .videoWrap > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .videoWrap.playing { background: #000; } /* turns black only when playing */
   </style>
 </head>
 <body class="min-h-screen p-4 text-gray-100">
@@ -99,38 +104,40 @@
       <button onclick="copyAcc()" class="bg-green-600 px-3 py-1 rounded text-white text-sm">Copy</button>
     </div>
 
-    <!-- Trailer Section (centered) -->
-    <div id="trailerSection" class="mt-6 text-center">
+    <!-- Trailer Section (transparent by default) -->
+    <div id="trailerSection" class="mt-6 text-center readable">
       <p class="font-semibold mb-2 text-yellow-400">🎬 Official Trailer</p>
-      <div class="relative w-full max-w-lg mx-auto" style="padding-bottom: 56.25%; background:#000;">
-        <div id="trailerOverlay" 
-             class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/70 text-white rounded">
+      <div id="trailerWrap" class="videoWrap">
+        <div id="trailerOverlay" class="flex flex-col items-center justify-center bg-black/70 text-white rounded">
           <p class="mb-3">Watch the Kanbulo Trailer</p>
           <button onclick="playTrailer()" class="bg-red-600 px-4 py-2 rounded mb-3">▶ Play Trailer</button>
           <button onclick="skipToBooking()" class="bg-green-600 px-4 py-2 rounded">➡ Skip to Booking</button>
         </div>
-        <iframe id="trailerFrame" 
-                class="absolute top-0 left-0 w-full h-full rounded hidden"
+        <iframe id="trailerFrame"
+                class="hidden rounded"
                 src=""
                 title="Kanbulo Trailer"
                 frameborder="0"
-                allow="autoplay; encrypted-media"
+                allow="autoplay; encrypted-media; picture-in-picture"
                 allowfullscreen>
         </iframe>
       </div>
-      <button id="toBookingAfterTrailer" 
-              onclick="skipToBooking()" 
+      <button id="toBookingAfterTrailer"
+              onclick="skipToBooking()"
               class="mt-4 bg-green-600 px-4 py-2 rounded hidden">
         ➡ Proceed to Booking
       </button>
     </div>
   </div>
 
-  <!-- Step 1 -->
-  <div id="step1" class="hidden mb-4 text-center readable">
-    <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-3 text-black rounded">
-    <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-3 text-black rounded">
-    <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Next</button>
+  <!-- Step 1 (white card restored so no BG clash while typing) -->
+  <div id="step1" class="hidden mb-4">
+    <div class="max-w-md mx-auto bg-white rounded shadow p-4">
+      <div class="text-center mb-2 readable"><p class="font-semibold text-gray-900">Your Details</p></div>
+      <input id="fullName" type="text" placeholder="Full Name" class="border p-2 w-full mb-3 text-black rounded bg-white">
+      <input id="phone" type="number" placeholder="Contact Number (7xxxxxxx or 9xxxxxxx)" class="border p-2 w-full mb-3 text-black rounded bg-white">
+      <button onclick="proceedToSeats()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Next</button>
+    </div>
   </div>
 
   <!-- Seat Selection -->
@@ -179,7 +186,10 @@ window.copyAcc = () => {
 };
 
 window.playTrailer = () => {
+  // Hide overlay, show iframe, and make the wrapper black ONLY now
   document.getElementById('trailerOverlay').classList.add('hidden');
+  const wrap = document.getElementById('trailerWrap');
+  wrap.classList.add('playing');
   const frame = document.getElementById('trailerFrame');
   frame.src = "https://www.youtube.com/embed/x2QU5uMFWJs?rel=0"; // new trailer
   frame.classList.remove('hidden');
@@ -249,7 +259,7 @@ function updateNamesArea() {
   const area = document.getElementById("namesArea");
   area.innerHTML = selectedSeats.map((s, i) => `
     <div class="my-1">${s.seatId}: 
-      <input placeholder="Name for seat" class="border p-1 w-64 text-black rounded" data-index="${i}" value="${s.name || ''}">
+      <input placeholder="Name for seat" class="border p-1 w-64 text-black rounded bg-white" data-index="${i}" value="${s.name || ''}">
     </div>
   `).join("");
   area.querySelectorAll("input").forEach(input => {
@@ -280,22 +290,12 @@ window.submitBooking = () => {
 };
 
 renderScreens();
-
-const bookingsRef = ref(db, "bookings");
-onValue(bookingsRef, snap => {
-  // 1) Clear previous markers so UI reflects the latest snapshot
-  document.querySelectorAll(".seat.booked, .seat.confirmed").forEach(el => {
-    el.classList.remove("booked", "confirmed");
-  });
-
-  // 2) Re-apply from the current data
-  const data = snap.val() || {};
+onValue(ref(db, "bookings"), snap => {
+  const data = snap.val();
+  if (!data) return;
   for (const b of Object.values(data)) {
     const el = document.querySelector(`[data-id='${b.seatId}']`);
-    if (!el) continue;
-    if (b.status === "booked" || b.status === "confirmed") {
-      el.classList.add(b.status);
-    }
+    if (el) el.classList.add(b.status);
   }
 });
 
