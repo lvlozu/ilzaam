@@ -109,73 +109,38 @@
     <div id="trailerSection" class="mt-6 text-center readable">
       <p class="font-semibold mb-2 text-yellow-400">🎬 Official Trailer</p>
       <div id="trailerWrap" class="videoWrap">
+        <!-- Transparent overlay with buttons -->
         <div id="trailerOverlay" class="flex flex-col items-center justify-center">
           <div class="flex flex-col sm:flex-row gap-3">
-// --- Add this near your other globals ---
-const videoSources = [
-  // If files live in the same folder as index.html (GitHub Pages), use relative paths.
-  // A) If you kept spaces in filenames:
-  { label: "TRAILER 1", src: "./TRAILER%201.mp4" },
-  { label: "TRAILER 2", src: "./TRAILER%202.mp4" },
-
-  // B) If you rename files to avoid spaces (recommended), use:
-  // { label: "TRAILER 1", src: "./trailer1.mp4" },
-  // { label: "TRAILER 2", src: "./trailer2.mp4" },
-];
-
-// --- Replace the old window.playTrailer with this ---
-window.playTrailer = (index = 0) => {
-  const chosen = videoSources[index] || videoSources[0];
-
-  // Hide overlay and show <video>; wrapper stays fully transparent
-  const overlay = document.getElementById('trailerOverlay');
-  const video   = document.getElementById('trailerVideo');
-  const proceed = document.getElementById('toBookingAfterTrailer');
-  const note    = document.getElementById('trailerNote');
-
-  if (overlay) overlay.classList.add('hidden');
-
-  // Set the video source
-  if (video.getAttribute('data-current-src') !== chosen.src) {
-    video.pause();
-    video.removeAttribute('src');
-    while (video.firstChild) video.removeChild(video.firstChild);
-    const source = document.createElement('source');
-    source.src = chosen.src;
-    source.type = 'video/mp4';
-    video.appendChild(source);
-    video.setAttribute('data-current-src', chosen.src);
-    video.load();
-  }
-
-  // Reveal and try to play (user gesture already occurred by clicking)
-  video.classList.remove('hidden');
-  proceed.classList.remove('hidden');
-  note.classList.remove('hidden');
-
-  // Autoplay attempt (will work because user clicked a button)
-  video.play().catch(() => {
-    // If autoplay is blocked, the user can press play manually.
-    console.warn('Autoplay blocked; waiting for user interaction.');
-  });
-};
+            <button onclick="playTrailer(0)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 1</button>
+            <button onclick="playTrailer(1)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 2</button>
             <button onclick="skipToBooking()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">➡ Skip to Booking</button>
           </div>
         </div>
-        <iframe id="trailerFrame"
-                class="hidden rounded"
-                src=""
-                title="ILZAAM Trailer"
-                frameborder="0"
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowfullscreen>
-        </iframe>
+
+        <!-- HTML5 Video (replaces iframe) -->
+        <video id="trailerVideo"
+               class="hidden rounded"
+               controls
+               preload="metadata"
+               playsinline
+               webkit-playsinline
+               poster="poster.jpg">
+          <!-- source inserted by JS -->
+        </video>
       </div>
+
+      <!-- Proceed button appears once trailer shown -->
       <button id="toBookingAfterTrailer"
               onclick="skipToBooking()"
               class="mt-4 bg-green-600 px-4 py-2 rounded hidden">
         ➡ Proceed to Booking
       </button>
+
+      <!-- Dhivehi footnote, centered & RTL -->
+      <p id="trailerNote" dir="rtl" class="mt-3 text-center text-yellow-300 text-sm readable hidden">
+        މިއީ ކާމިޔާބު ދިވެހި ފިލްމް ސްޓާރ ޔޫސުފް ޝަފީޢު (ޔޫއްޕެ) ގެ ވަރަށް ޚައްސަ ފިލްމެއް! ޔޫއްޕެ އަކީ ރީތި އަދި ޔާމިޔާބު އެތަކެއް ފިލްމެއްގައި އެކްޓްކޮށް އަދި ޑައިރެކްޓްކޮށްފައިވާ ކުޅަދާނަ ފަންނާނެއް!
+      </p>
     </div>
   </div>
 
@@ -229,54 +194,57 @@ const db = getDatabase(app);
 const screens = { screenA: { rows: 9, cols: 9 }, screenB: { rows: 10, cols: 10 }, screenC: { rows: 9, cols: 9 } };
 let selectedSeats = [];
 
+/* ---------- ACCOUNT COPY ---------- */
 window.copyAcc = () => {
   const acc = document.getElementById("payAcc").innerText;
   navigator.clipboard.writeText(acc).then(() => alert("Account copied: " + acc));
 };
 
-window.playTrailer = () => {
-  // Hide overlay and show iframe; wrapper stays fully transparent
-<div id="trailerOverlay" class="flex flex-col items-center justify-center">
-  <div class="flex flex-col sm:flex-row gap-3">
-    <button onclick="playTrailer(0)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 1</button>
-    <button onclick="playTrailer(1)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 2</button>
-    <button onclick="skipToBooking()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">➡ Skip to Booking</button>
-  </div>
-</div>
+/* ---------- TRAILER: TWO LOCAL MP4S ---------- */
+const videoSources = [
+  { label: "TRAILER 1", src: "./TRAILER%201.mp4" },
+  { label: "TRAILER 2", src: "./TRAILER%202.mp4" },
+  // If renamed: { label: "TRAILER 1", src: "./trailer1.mp4" },
+  //              { label: "TRAILER 2", src: "./trailer2.mp4" },
+];
 
-<!-- New HTML5 video element (replaces the iframe) -->
-<video id="trailerVideo"
-       class="hidden rounded"
-       controls
-       preload="metadata"
-       playsinline
-       webkit-playsinline
-       poster="poster.jpg">
-  <!-- source set by JS -->
-</video>
+window.playTrailer = (index = 0) => {
+  const chosen = videoSources[index] || videoSources[0];
 
-<!-- Proceed button shown after the trailer is revealed -->
-<button id="toBookingAfterTrailer"
-        onclick="skipToBooking()"
-        class="mt-4 bg-green-600 px-4 py-2 rounded hidden">
-  ➡ Proceed to Booking
-</button>
+  const overlay = document.getElementById('trailerOverlay');
+  const video   = document.getElementById('trailerVideo');
+  const proceed = document.getElementById('toBookingAfterTrailer');
+  const note    = document.getElementById('trailerNote');
 
-<!-- Dhivehi footnote -->
-<p id="trailerNote" class="mt-3 text-center text-yellow-300 text-sm readable hidden">
-  މިއީ ކާމިޔާބު ދިވެހި ފިލްމް ސްޓާރ ޔޫސުފް ޝަފީޢު (ޔޫއްޕެ) ގެ ވަރަށް ޚައްސަ ފިލްމެއް! ޔޫއްޕެ އަކީ ރީތި އަދި ޔާމިޔާބު އެތަކެއް ފިލްމެއްގައި އެކްޓްކޮށް އަދި ޑައިރެކްޓްކޮށްފައިވާ ކުޅަދާނަ ފަންނާނެއް!
-</p>
+  if (overlay) overlay.classList.add('hidden');
 
-  frame.classList.remove('hidden');
-  document.getElementById('toBookingAfterTrailer').classList.remove('hidden');
+  if (video.getAttribute('data-current-src') !== chosen.src) {
+    video.pause();
+    video.removeAttribute('src');
+    while (video.firstChild) video.removeChild(video.firstChild);
+    const source = document.createElement('source');
+    source.src = chosen.src;
+    source.type = 'video/mp4';
+    video.appendChild(source);
+    video.setAttribute('data-current-src', chosen.src);
+    video.load();
+  }
+
+  video.classList.remove('hidden');
+  proceed.classList.remove('hidden');
+  note.classList.remove('hidden');
+
+  video.play().catch(() => {
+    console.warn('Autoplay blocked; waiting for user interaction.');
+  });
 };
 
+/* ---------- FLOW ---------- */
 window.skipToBooking = () => {
   document.getElementById("instructions").classList.add("hidden");
   document.getElementById("step1").classList.remove("hidden");
   window.scrollTo({ top: document.getElementById("step1").offsetTop, behavior: 'smooth' });
 
-  // optional: clean URL and clear the session flag
   if (history.replaceState && (location.hash === "#book")) {
     history.replaceState(null, "", location.pathname + location.search);
   }
@@ -291,6 +259,7 @@ window.proceedToSeats = () => {
   document.getElementById("seatSection").classList.remove("hidden");
 };
 
+/* ---------- SEATS RENDER ---------- */
 function renderScreens() {
   for (const [screenId, { rows, cols }] of Object.entries(screens)) {
     const container = document.getElementById(screenId);
@@ -342,6 +311,7 @@ function updateNamesArea() {
   });
 }
 
+/* ---------- SUBMIT ---------- */
 window.submitBooking = () => {
   const fullName = document.getElementById("fullName").value.trim();
   const phone = document.getElementById("phone").value.trim();
@@ -364,6 +334,7 @@ window.submitBooking = () => {
   }, { onlyOnce: true });
 };
 
+/* ---------- INIT ---------- */
 renderScreens();
 onValue(ref(db, "bookings"), snap => {
   const data = snap.val();
@@ -374,7 +345,7 @@ onValue(ref(db, "bookings"), snap => {
   }
 });
 
-// Progressive GIF loader (prevents blank if GIF slow/missing)
+/* Progressive GIF loader (prevents blank if GIF slow/missing) */
 (function(){
   const img = new Image();
   img.onload  = () => document.body.classList.add('gif-bg');
@@ -382,7 +353,7 @@ onValue(ref(db, "bookings"), snap => {
   img.src = 'BG.gif?v=2';
 })();
 
-// Auto-skip landing if coming from thankyou (index.html#book) or flag
+/* Auto-skip landing if coming from thankyou (index.html#book) or flag */
 window.addEventListener("DOMContentLoaded", () => {
   if (location.hash === "#book" || sessionStorage.getItem("skipLanding") === "1") {
     skipToBooking();
