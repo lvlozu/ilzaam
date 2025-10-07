@@ -111,7 +111,54 @@
       <div id="trailerWrap" class="videoWrap">
         <div id="trailerOverlay" class="flex flex-col items-center justify-center">
           <div class="flex flex-col sm:flex-row gap-3">
-            <button onclick="playTrailer()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer</button>
+// --- Add this near your other globals ---
+const videoSources = [
+  // If files live in the same folder as index.html (GitHub Pages), use relative paths.
+  // A) If you kept spaces in filenames:
+  { label: "TRAILER 1", src: "./TRAILER%201.mp4" },
+  { label: "TRAILER 2", src: "./TRAILER%202.mp4" },
+
+  // B) If you rename files to avoid spaces (recommended), use:
+  // { label: "TRAILER 1", src: "./trailer1.mp4" },
+  // { label: "TRAILER 2", src: "./trailer2.mp4" },
+];
+
+// --- Replace the old window.playTrailer with this ---
+window.playTrailer = (index = 0) => {
+  const chosen = videoSources[index] || videoSources[0];
+
+  // Hide overlay and show <video>; wrapper stays fully transparent
+  const overlay = document.getElementById('trailerOverlay');
+  const video   = document.getElementById('trailerVideo');
+  const proceed = document.getElementById('toBookingAfterTrailer');
+  const note    = document.getElementById('trailerNote');
+
+  if (overlay) overlay.classList.add('hidden');
+
+  // Set the video source
+  if (video.getAttribute('data-current-src') !== chosen.src) {
+    video.pause();
+    video.removeAttribute('src');
+    while (video.firstChild) video.removeChild(video.firstChild);
+    const source = document.createElement('source');
+    source.src = chosen.src;
+    source.type = 'video/mp4';
+    video.appendChild(source);
+    video.setAttribute('data-current-src', chosen.src);
+    video.load();
+  }
+
+  // Reveal and try to play (user gesture already occurred by clicking)
+  video.classList.remove('hidden');
+  proceed.classList.remove('hidden');
+  note.classList.remove('hidden');
+
+  // Autoplay attempt (will work because user clicked a button)
+  video.play().catch(() => {
+    // If autoplay is blocked, the user can press play manually.
+    console.warn('Autoplay blocked; waiting for user interaction.');
+  });
+};
             <button onclick="skipToBooking()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">➡ Skip to Booking</button>
           </div>
         </div>
@@ -189,9 +236,37 @@ window.copyAcc = () => {
 
 window.playTrailer = () => {
   // Hide overlay and show iframe; wrapper stays fully transparent
-  document.getElementById('trailerOverlay').classList.add('hidden');
-  const frame = document.getElementById('trailerFrame');
-  frame.src = "https://www.youtube.com/embed/x2QU5uMFWJs?rel=0"; // new trailer
+<div id="trailerOverlay" class="flex flex-col items-center justify-center">
+  <div class="flex flex-col sm:flex-row gap-3">
+    <button onclick="playTrailer(0)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 1</button>
+    <button onclick="playTrailer(1)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 2</button>
+    <button onclick="skipToBooking()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">➡ Skip to Booking</button>
+  </div>
+</div>
+
+<!-- New HTML5 video element (replaces the iframe) -->
+<video id="trailerVideo"
+       class="hidden rounded"
+       controls
+       preload="metadata"
+       playsinline
+       webkit-playsinline
+       poster="poster.jpg">
+  <!-- source set by JS -->
+</video>
+
+<!-- Proceed button shown after the trailer is revealed -->
+<button id="toBookingAfterTrailer"
+        onclick="skipToBooking()"
+        class="mt-4 bg-green-600 px-4 py-2 rounded hidden">
+  ➡ Proceed to Booking
+</button>
+
+<!-- Dhivehi footnote -->
+<p id="trailerNote" class="mt-3 text-center text-yellow-300 text-sm readable hidden">
+  މިއީ ކާމިޔާބު ދިވެހި ފިލްމް ސްޓާރ ޔޫސުފް ޝަފީޢު (ޔޫއްޕެ) ގެ ވަރަށް ޚައްސަ ފިލްމެއް! ޔޫއްޕެ އަކީ ރީތި އަދި ޔާމިޔާބު އެތަކެއް ފިލްމެއްގައި އެކްޓްކޮށް އަދި ޑައިރެކްޓްކޮށްފައިވާ ކުޅަދާނަ ފަންނާނެއް!
+</p>
+
   frame.classList.remove('hidden');
   document.getElementById('toBookingAfterTrailer').classList.remove('hidden');
 };
