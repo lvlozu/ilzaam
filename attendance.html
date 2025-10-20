@@ -6,15 +6,12 @@
     <title>Attendance Logs — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <style>
-      @media print {
-        @page { size: A4 portrait; margin: 10mm; }
-        body[data-page="attendance"] { zoom: 0.82; } /* squeeze to one page vertically */
-      }
+      @media print { @page { size: A4 portrait; } body[data-page="attendance"] { zoom: 0.76; } }
     </style>
     <script type="module">
       import { db } from './firebase-init.js';
       import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-      import { PROVIDER, CLIENT, OWNER_LINE, SITE_ID, daysInMonth, formatMonthYear, pad, weekdayShort, isWeekendHoliday, monthShort, staffName, computeShiftsForDate } from './shared.js';
+      import { SITE_ID, daysInMonth, formatMonthYear, pad, weekdayShort, isWeekendHoliday, monthShort, staffName, computeShiftsForDate } from './shared.js';
 
       function attendanceRef(year, month){
         const ym = `${year}${String(month+1).padStart(2,'0')}`;
@@ -23,6 +20,13 @@
       function rosterRef(year, month){
         const ym = `${year}${String(month+1).padStart(2,'0')}`;
         return doc(db, 'rosters', `${SITE_ID}_${ym}`);
+      }
+      const shortName = (full)=>{
+        if (!full) return '';
+        if (full.startsWith('Ibrahim')) return 'I. Naseer';
+        if (full.startsWith('Saeedhaa')) return 'Saeedhaa A.K';
+        if (full.startsWith('Riza')) return 'Rizaana A.';
+        return full;
       }
 
       function parseHHMM(h){ const [hh,mm]=h.split(':'); return (+hh)*60+(+mm); }
@@ -38,43 +42,32 @@
 
         function saveYM(){ sessionStorage.setItem('yr', String(year)); sessionStorage.setItem('mo', String(month)); }
 
-        function nav(){
-          const nav = document.createElement('div');
-          nav.className='mbar print-hide';
-          nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div><button class="btn" id="printBtn">Print / Save PDF</button>';
-          setTimeout(()=>{ document.getElementById('printBtn').onclick = ()=>window.print(); }, 0);
-          return nav;
-        }
-
         function header(len){
-          const band = document.createElement('div');
-          band.className='bar pad center';
-          const label = formatMonthYear(year, month);
-          band.innerHTML = [
-            `<div class="text-xl">${PROVIDER}</div>`,
-            `<div class="text-lg">Attendance Logs</div>`,
-            `<div class="text-sm">Month: ${label} (01 – ${pad(len)})</div>`,
-            `<div class="text-sm">For ${CLIENT}</div>`
-          ].join('');
-          return band;
+          const wrap = document.createElement('div'); wrap.className='pad';
+          const bar = document.createElement('div'); bar.style.display='grid'; bar.style.gridTemplateColumns='1fr 1fr 1fr'; bar.style.alignItems='center';
+          const left = document.createElement('div'); left.className='text-md bold'; left.textContent='BIZOLVE';
+          const center = document.createElement('div'); center.className='center';
+          const title = document.createElement('div'); title.className='text-xl'; title.textContent='Attendance Logs';
+          const sub = document.createElement('div'); sub.className='text-sm'; sub.textContent='for Hidhaya School / N. Miladhoo';
+          center.append(title, sub);
+          const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
+          bar.append(left, center, right);
+          wrap.appendChild(bar);
+          return wrap;
         }
 
         function controls(){
           const wrap = document.createElement('div'); wrap.className='pad controls print-hide';
           const prevBtn = document.createElement('button'); prevBtn.className='btn'; prevBtn.textContent='Prev';
           const nextBtn = document.createElement('button'); nextBtn.className='btn'; nextBtn.textContent='Next';
-          const lab = document.createElement('div'); lab.className='bold';
           const monthSel = document.createElement('select'); monthSel.className='select';
           const yearSel = document.createElement('select'); yearSel.className='select';
-          const setLab = ()=> lab.textContent = formatMonthYear(year, month);
-          setLab();
           for(let i=0;i<12;i++){ const o=document.createElement('option'); o.value=String(i); o.textContent = new Date(2025,i,1).toLocaleString('en',{month:'long'}); if(i===month) o.selected=true; monthSel.appendChild(o); }
           const baseYear = new Date().getFullYear(); for(let i=-2;i<=3;i++){ const y=baseYear+i; const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); if(y===year) o.selected=true; yearSel.appendChild(o); }
           prevBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()-1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
           nextBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()+1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
-          monthSel.onchange = ()=>{ month = parseInt(monthSel.value); saveYM(); resubscribe(); };
-          yearSel.onchange = ()=>{ year = parseInt(yearSel.value); saveYM(); resubscribe(); };
-          wrap.append(prevBtn, lab, nextBtn, monthSel, yearSel);
+          const printBtn = document.createElement('button'); printBtn.className='btn'; printBtn.textContent='Print / Save PDF'; printBtn.onclick = ()=>window.print();
+          wrap.append(prevBtn, nextBtn, monthSel, yearSel, printBtn);
           return wrap;
         }
 
@@ -90,10 +83,7 @@
           const card = document.createElement('div'); card.className='card'; wrap.appendChild(card);
 
           const head = document.createElement('div');
-          head.className='pad-sm bold text-xs';
-          head.style.background = '#e3f2fd';
-          head.style.display = 'grid';
-          head.style.gridTemplateColumns = '1fr 1fr 2fr 2fr 2fr 2fr';
+          head.className='pad-sm bold text-xs header-att cols-att';
           head.innerHTML = '<div>Day</div><div>Weekday</div><div>Shift 1</div><div>Shift 2</div><div>Shift 3</div><div>Incidents & Important Remarks</div>';
           card.appendChild(head);
 
@@ -108,7 +98,7 @@
             const row = document.createElement('div');
             const weekend = isWeekendHoliday(date); const isHol = weekend || ov===1; const isSchool = !isHol && (ov===2 || sch);
             row.className = (isHol ? 'holiday' : (isSchool ? 'school' : ''));
-            row.style.display='grid'; row.style.gridTemplateColumns='1fr 1fr 2fr 2fr 2fr 2fr'; row.style.borderTop='1px solid #e5e7eb';
+            row.classList.add('cols-att'); row.style.borderTop='1px solid #e5e7eb';
 
             const dCell = document.createElement('div'); dCell.className='pad-sm bold'; dCell.textContent = `${pad(d)} ${monthShort(year,month)}`;
             const wCell = document.createElement('div'); wCell.className='pad-sm muted'; wCell.textContent = weekdayShort(date.getDay());
@@ -130,7 +120,7 @@
               }
               const line = document.createElement('div'); line.className='inline';
               const t1 = document.createElement('div'); t1.className='text-xs bold'; t1.textContent=s.time;
-              const t2 = document.createElement('div'); t2.className='text-xs'; t2.textContent = staffName(s.staffId);
+              const t2 = document.createElement('div'); t2.className='text-xs'; t2.textContent = shortName(staffName(s.staffId));
               const stamp = chip(status);
               stamp.style.cursor = 'pointer';
               stamp.onclick = ()=>{
@@ -141,7 +131,6 @@
                 const next = { ...state.att, [String(d)]: { ...cur, rows } };
                 state.att = next;
                 setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-                // refresh stamp inline only
                 stamp.replaceWith(chip(nextStatus));
               };
               line.append(t1, t2, stamp);
@@ -150,7 +139,8 @@
             });
 
             const remarks = document.createElement('div'); remarks.className='pad-sm';
-            const txt = document.createElement('textarea'); txt.placeholder = 'Record incidents / important remarks';
+            const txt = document.createElement('textarea'); txt.placeholder = 'Remarks';
+            txt.style.minHeight = '34px'; txt.style.fontSize='10px';
             txt.value = record.dayRemark || '';
             txt.oninput = ()=>{
               const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
@@ -167,10 +157,12 @@
         }
 
         function resubscribe(){
-          // Clear entirely, build static chrome once
           root.innerHTML='';
           const len = daysInMonth(year, month);
-          root.appendChild(nav());
+          // Nav
+          const nav = document.createElement('div'); nav.className='mbar print-hide';
+          nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div>';
+          root.appendChild(nav);
           root.appendChild(header(len));
           root.appendChild(controls());
 
@@ -185,7 +177,7 @@
             const tbl = build(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot');
             if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = 'Supervised & Managed by Hassan Irfan Mohamed (BIZOLVE) — Electronic Signature Verified';
             root.appendChild(foot);
           }, ()=>{
             state.overrides = {}; state.schoolMap = {};
@@ -199,21 +191,9 @@
             const tbl = build(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot');
             if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = 'Supervised & Managed by Hassan Irfan Mohamed (BIZOLVE) — Electronic Signature Verified';
             root.appendChild(foot);
           }, ()=>{ state.att = {}; });
-        }
-
-        // Controls need to change year/month and re-subscribe
-        window.addEventListener('changeYM', (e)=>{
-          const {year:newY, month:newM} = e.detail;
-          year = newY; month = newM; resubscribe();
-        });
-
-        // Expose setters for month/year controls inside controls() (via events)
-        function wireSelectors(){
-          const selects = document.querySelectorAll('select.select');
-          const btns = document.querySelectorAll('.controls .btn');
         }
 
         resubscribe();
@@ -226,6 +206,11 @@
     </script>
   </head>
   <body data-page="attendance">
+    <div class="mbar print-hide">
+      <a class="btn" href="./WC.html">← Back to WC</a>
+      <div class="grow"></div>
+      <button class="btn" onclick="window.print()">Print / Save PDF</button>
+    </div>
     <div id="app"></div>
   </body>
 </html>

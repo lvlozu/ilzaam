@@ -6,19 +6,24 @@
     <title>Duty Roster — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <style>
-      @media print {
-        /* Force landscape for roster only */
-        @page { size: A4 landscape; margin: 10mm; }
-      }
+      @media print { @page { size: A4 landscape; } }
     </style>
     <script type="module">
       import { db } from './firebase-init.js';
       import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-      import { PROVIDER, CLIENT, OWNER_LINE, SITE_ID, daysInMonth, startOfMonthWeekday, formatMonthYear, monthShort, pad, isWeekendHoliday, staffName, displayStartMinute, computeShiftsForDate } from './shared.js';
+      import { SITE_ID, daysInMonth, startOfMonthWeekday, formatMonthYear, monthShort, pad, isWeekendHoliday, staffName, displayStartMinute, computeShiftsForDate } from './shared.js';
 
       function rosterRef(year, month){
         const ym = `${year}${String(month+1).padStart(2,'0')}`;
         return doc(db, 'rosters', `${SITE_ID}_${ym}`);
+      }
+      const shortName = (full)=>{
+        if (!full) return '';
+        // Map explicit short forms
+        if (full.startsWith('Ibrahim')) return 'I. Naseer';
+        if (full.startsWith('Saeedhaa')) return 'Saeedhaa A.K';
+        if (full.startsWith('Riza')) return 'Rizaana A.';
+        return full;
       }
 
       function render(){
@@ -31,57 +36,51 @@
 
         function saveYM(){ sessionStorage.setItem('yr', String(year)); sessionStorage.setItem('mo', String(month)); }
 
-        function buildPage(){
-          root.innerHTML = ''; // prevent duplicates
-          const len = daysInMonth(year, month);
-          const som = startOfMonthWeekday(year, month);
-          const label = formatMonthYear(year, month);
+        function header(len){
+          const wrap = document.createElement('div'); wrap.className='pad';
+          // Split header: left brand, center title+sub, right month/year
+          const bar = document.createElement('div'); bar.style.display='grid'; bar.style.gridTemplateColumns='1fr 1fr 1fr'; bar.style.alignItems='center';
+          const left = document.createElement('div'); left.className='text-md bold'; left.textContent='BIZOLVE';
+          const center = document.createElement('div'); center.className='center';
+          const title = document.createElement('div'); title.className='text-xl'; title.textContent='Duty Roster';
+          const sub = document.createElement('div'); sub.className='text-sm'; sub.textContent='for Hidhaya School / N. Miladhoo';
+          center.append(title, sub);
+          const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
+          bar.append(left, center, right);
+          wrap.appendChild(bar);
+          return wrap;
+        }
 
-          // Top nav
-          const nav = document.createElement('div');
-          nav.className = 'mbar print-hide';
-          nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div><button class="btn" id="printBtn">Print / Save PDF</button>';
-          root.appendChild(nav);
-          nav.querySelector('#printBtn').onclick = ()=> window.print();
-
-          // Header band
-          const band = document.createElement('div');
-          band.className = 'bar pad center';
-          band.innerHTML = [
-            `<div class="text-xl">${PROVIDER}</div>`,
-            `<div class="text-lg">Duty Roster</div>`,
-            `<div class="text-sm">Month: ${label} (${pad(1)} – ${pad(len)})</div>`,
-            `<div class="text-sm">For ${CLIENT}</div>`,
-          ].join('');
-          root.appendChild(band);
-
-          // Controls
-          const controls = document.createElement('div');
-          controls.className = 'pad controls print-hide';
+        function controls(){
+          const wrap = document.createElement('div'); wrap.className='pad controls print-hide';
           const prevBtn = document.createElement('button'); prevBtn.className='btn'; prevBtn.textContent='Prev';
           const nextBtn = document.createElement('button'); nextBtn.className='btn'; nextBtn.textContent='Next';
-          const lab = document.createElement('div'); lab.className='bold'; lab.textContent = label;
           const monthSel = document.createElement('select'); monthSel.className='select';
-          for(let i=0;i<12;i++){ const o=document.createElement('option'); o.value=String(i); o.textContent = new Date(2025,i,1).toLocaleString('en',{month:'long'}); if(i===month) o.selected=true; monthSel.appendChild(o); }
           const yearSel = document.createElement('select'); yearSel.className='select';
-          const baseYear = now.getFullYear(); for(let i=-2;i<=3;i++){ const y=baseYear+i; const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); if(y===year) o.selected=true; yearSel.appendChild(o); }
+          for(let i=0;i<12;i++){ const o=document.createElement('option'); o.value=String(i); o.textContent = new Date(2025,i,1).toLocaleString('en',{month:'long'}); if(i===month) o.selected=true; monthSel.appendChild(o); }
+          const baseYear = new Date().getFullYear(); for(let i=-2;i<=3;i++){ const y=baseYear+i; const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); if(y===year) o.selected=true; yearSel.appendChild(o); }
           prevBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()-1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
           nextBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()+1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
-          monthSel.onchange = ()=>{ month = parseInt(monthSel.value); saveYM(); resubscribe(); };
-          yearSel.onchange = ()=>{ year = parseInt(yearSel.value); saveYM(); resubscribe(); };
-          controls.append(prevBtn, lab, nextBtn, monthSel, yearSel);
-          root.appendChild(controls);
+          const printBtn = document.createElement('button'); printBtn.className='btn'; printBtn.textContent='Print / Save PDF'; printBtn.onclick = ()=>window.print();
+          wrap.append(prevBtn, nextBtn, monthSel, yearSel, printBtn, document.createElement('div'));
+          return wrap;
+        }
 
-          // Weekday header
-          const weekdays = document.createElement('div');
-          weekdays.className = 'grid7 muted text-xs center';
-          weekdays.style.marginBottom = '8px';
-          ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>{
-            const el=document.createElement('div'); el.textContent=d; el.style.padding='6px 0'; weekdays.appendChild(el);
-          });
-          root.appendChild(weekdays);
+        function pageChrome(len){
+          root.innerHTML='';
+          // Top nav
+          const nav = document.createElement('div'); nav.className='mbar print-hide';
+          nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div>';
+          root.appendChild(nav);
+          root.appendChild(header(len));
+          root.appendChild(controls());
+        }
 
-          // Calendar grid
+        function build(){
+          const len = daysInMonth(year, month);
+          pageChrome(len);
+          const som = startOfMonthWeekday(year, month);
+
           const prevMonthDate = new Date(year, month, 0);
           const prevDays = prevMonthDate.getDate();
           const leading = som;
@@ -91,7 +90,13 @@
           for (let d=1; d<=len; d++) cells.push({ date: new Date(year, month, d), outside: false});
           for (let i=1; i<=trailing; i++) cells.push({ date: new Date(year, month+1, i), outside: true});
 
-          const grid = document.createElement('div'); grid.className = 'grid7';
+          const weekHead = document.createElement('div'); weekHead.className='grid7 muted text-xs center'; weekHead.style.margin='4px 12px';
+          ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>{
+            const el=document.createElement('div'); el.textContent=d; el.style.padding='4px 0'; weekHead.appendChild(el);
+          });
+          root.appendChild(weekHead);
+
+          const grid = document.createElement('div'); grid.className='grid7'; grid.style.margin='0 12px 12px';
           cells.forEach((cell)=>{
             const date = cell.date;
             const dNum = date.getDate();
@@ -123,9 +128,9 @@
             sorted.forEach((s,i)=>{
               const row = document.createElement('div');
               row.className = 'row ' + (i%2===0?'altA':'altB') + (s.grey?' noduty':'');
-              const left=document.createElement('div'); left.className='bold'; left.textContent = s.time || '—';
-              const right=document.createElement('div'); right.className='inline'; right.innerHTML = s.staffId? `${staffName(s.staffId)}` : '';
-              row.append(left,right);
+              const t = document.createElement('div'); t.className='time'; t.textContent = s.time || '—';
+              const n = document.createElement('div'); n.className='name'; n.textContent = s.staffId? shortName(staffName(s.staffId)) : '';
+              row.append(t,n);
               inner.appendChild(row);
             });
             cellDiv.appendChild(inner);
@@ -133,20 +138,21 @@
           });
           root.appendChild(grid);
 
-          const footer = document.createElement('div'); footer.id='foot'; footer.className='pad center text-xs'; footer.style.background='#f1f8e9'; footer.textContent = OWNER_LINE;
+          const footer = document.createElement('div'); footer.id='foot'; footer.className='pad center text-xs'; footer.style.background='#f1f8e9'; footer.textContent = 'Supervised & Managed by Hassan Irfan Mohamed (BIZOLVE) — Electronic Signature Verified';
           root.appendChild(footer);
         }
 
         function resubscribe(){
-          unsubscribe();
           const ref = rosterRef(year, month);
+          if (unsubscribe) unsubscribe();
           unsubscribe = onSnapshot(ref, snap=>{
             const d = snap.data() || {};
             state.overrides = d.overrides || {};
             state.schoolMap = d.schoolMap || {};
-            buildPage();
+            root.innerHTML='';
+            build();
           }, ()=>{
-            state.overrides = {}; state.schoolMap = {}; buildPage();
+            state.overrides = {}; state.schoolMap = {}; root.innerHTML=''; build();
           });
         }
 
@@ -160,6 +166,11 @@
     </script>
   </head>
   <body data-page="roster">
+    <div class="mbar print-hide">
+      <a class="btn" href="./WC.html">← Back to WC</a>
+      <div class="grow"></div>
+      <button class="btn" onclick="window.print()">Print / Save PDF</button>
+    </div>
     <div id="app"></div>
   </body>
 </html>
