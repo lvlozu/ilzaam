@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attendance Logs — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
+    <style>
+      @media print {
+        @page { size: A4 portrait; margin: 10mm; }
+        body[data-page="attendance"] { zoom: 0.82; } /* squeeze to one page vertically */
+      }
+    </style>
     <script type="module">
       import { db } from './firebase-init.js';
       import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -24,15 +30,23 @@
 
       function render(){
         const root = document.getElementById('app');
-        root.innerHTML = ''; // clear on render
         const now = new Date();
         let year = parseInt(sessionStorage.getItem('yr') || now.getFullYear());
         let month = parseInt(sessionStorage.getItem('mo') || now.getMonth());
         const state = { overrides:{}, schoolMap:{}, att:{} };
+        let unsubRoster = ()=>{}; let unsubAtt = ()=>{};
 
         function saveYM(){ sessionStorage.setItem('yr', String(year)); sessionStorage.setItem('mo', String(month)); }
 
-        function buildHeader(len){
+        function nav(){
+          const nav = document.createElement('div');
+          nav.className='mbar print-hide';
+          nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div><button class="btn" id="printBtn">Print / Save PDF</button>';
+          setTimeout(()=>{ document.getElementById('printBtn').onclick = ()=>window.print(); }, 0);
+          return nav;
+        }
+
+        function header(len){
           const band = document.createElement('div');
           band.className='bar pad center';
           const label = formatMonthYear(year, month);
@@ -45,7 +59,7 @@
           return band;
         }
 
-        function buildControls(){
+        function controls(){
           const wrap = document.createElement('div'); wrap.className='pad controls print-hide';
           const prevBtn = document.createElement('button'); prevBtn.className='btn'; prevBtn.textContent='Prev';
           const nextBtn = document.createElement('button'); nextBtn.className='btn'; nextBtn.textContent='Next';
@@ -64,17 +78,17 @@
           return wrap;
         }
 
-        function buildNav(){
-          const nav = document.createElement('div');
-          nav.className='mbar print-hide';
-          nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div><button class="btn" id="printBtn">Print / Save PDF</button>';
-          setTimeout(()=>{ document.getElementById('printBtn').onclick = ()=>window.print(); }, 0);
-          return nav;
+        function chip(status){
+          const span = document.createElement('span');
+          span.className = 'badge ' + (status==='present' ? 'present' : (status==='absent' ? 'absent' : ''));
+          span.innerHTML = (status==='present') ? '<span class="tick">✓</span>Present' : (status==='absent' ? '<span class="tick">✗</span>Absent' : '—');
+          return span;
         }
 
-        function buildTable(len){
+        function build(len){
           const wrap = document.createElement('div'); wrap.className='pad';
           const card = document.createElement('div'); card.className='card'; wrap.appendChild(card);
+
           const head = document.createElement('div');
           head.className='pad-sm bold text-xs';
           head.style.background = '#e3f2fd';
@@ -82,6 +96,9 @@
           head.style.gridTemplateColumns = '1fr 1fr 2fr 2fr 2fr 2fr';
           head.innerHTML = '<div>Day</div><div>Weekday</div><div>Shift 1</div><div>Shift 2</div><div>Shift 3</div><div>Incidents & Important Remarks</div>';
           card.appendChild(head);
+
+          const today = new Date(); const sameMonth = (today.getFullYear()===year && today.getMonth()===month);
+          const todayD = today.getDate(); const nowMin = today.getHours()*60 + today.getMinutes();
 
           for(let d=1; d<=len; d++){
             const date = new Date(year, month, d);
@@ -99,17 +116,6 @@
 
             const record = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
 
-            function stamp(status){
-              const span = document.createElement('span'); span.className='stamp';
-              if (status==='present'){ span.classList.add('present'); span.textContent='PRESENT'; }
-              else if (status==='absent'){ span.classList.add('absent'); span.textContent='ABSENT'; }
-              else { span.textContent='—'; }
-              return span;
-            }
-
-            const today = new Date(); const sameMonth = (today.getFullYear()===year && today.getMonth()===month);
-            const todayD = today.getDate(); const nowMin = today.getHours()*60 + today.getMinutes();
-
             shifts.forEach((s, idx)=>{
               const cell = document.createElement('div'); cell.className='pad-sm';
               if (s.grey){ cell.classList.add('noduty'); row.appendChild(cell); return; }
@@ -118,15 +124,16 @@
               if (!status){
                 if (!sameMonth || d < todayD) status = 'present';
                 else if (sameMonth && d===todayD){
-                  const [a] = s.time.split('–');
                   const start = onDayStartMinute(s.time);
                   if (start!==Infinity && nowMin>=start) status='present';
                 }
               }
+              const line = document.createElement('div'); line.className='inline';
               const t1 = document.createElement('div'); t1.className='text-xs bold'; t1.textContent=s.time;
               const t2 = document.createElement('div'); t2.className='text-xs'; t2.textContent = staffName(s.staffId);
-              const btn = document.createElement('button'); btn.className='btn'; btn.appendChild(stamp(status));
-              btn.onclick = ()=>{
+              const stamp = chip(status);
+              stamp.style.cursor = 'pointer';
+              stamp.onclick = ()=>{
                 const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
                 const old = cur.rows[idx] || {};
                 const nextStatus = old.status==='present' ? 'absent' : (old.status==='absent' ? undefined : 'present');
@@ -134,12 +141,11 @@
                 const next = { ...state.att, [String(d)]: { ...cur, rows } };
                 state.att = next;
                 setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-                // Re-render to refresh stamp styles
-                const oldWrap = document.getElementById('table-wrap');
-                if (oldWrap) oldWrap.remove();
-                const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
+                // refresh stamp inline only
+                stamp.replaceWith(chip(nextStatus));
               };
-              cell.append(t1,t2,btn);
+              line.append(t1, t2, stamp);
+              cell.appendChild(line);
               row.appendChild(cell);
             });
 
@@ -156,56 +162,70 @@
             row.appendChild(remarks);
             card.appendChild(row);
           }
+
           return wrap;
         }
 
-        let unsubRoster = ()=>{}; let unsubAtt = ()=>{};
         function resubscribe(){
-          unsubRoster(); unsubAtt();
-          root.innerHTML=''; // clear everything before rebuild
+          // Clear entirely, build static chrome once
+          root.innerHTML='';
           const len = daysInMonth(year, month);
-          root.appendChild(buildNav());
-          root.appendChild(buildHeader(len));
-          root.appendChild(buildControls());
+          root.appendChild(nav());
+          root.appendChild(header(len));
+          root.appendChild(controls());
 
           const rRef = rosterRef(year, month);
+          unsubRoster(); unsubAtt();
           unsubRoster = onSnapshot(rRef, snap=>{
             const d = snap.data() || {};
             state.overrides = d.overrides || {};
             state.schoolMap = d.schoolMap || {};
             const old = document.getElementById('table-wrap');
             if (old) old.remove();
-            const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
-            const foot = document.createElement('div'); foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
+            const tbl = build(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
+            let foot = document.getElementById('foot');
+            if (foot) foot.remove();
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
             root.appendChild(foot);
           }, ()=>{
             state.overrides = {}; state.schoolMap = {};
-            const old = document.getElementById('table-wrap');
-            if (old) old.remove();
-            const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
-            const foot = document.createElement('div'); foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
-            root.appendChild(foot);
           });
 
           const aRef = attendanceRef(year, month);
           unsubAtt = onSnapshot(aRef, snap=>{
             const data = snap.data() || {}; state.att = data.rows || {};
-            // rebuild table to reflect attendance change
             const old = document.getElementById('table-wrap');
             if (old) old.remove();
-            const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
-            const foot = document.createElement('div'); foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
+            const tbl = build(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
+            let foot = document.getElementById('foot');
+            if (foot) foot.remove();
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
             root.appendChild(foot);
           }, ()=>{ state.att = {}; });
+        }
+
+        // Controls need to change year/month and re-subscribe
+        window.addEventListener('changeYM', (e)=>{
+          const {year:newY, month:newM} = e.detail;
+          year = newY; month = newM; resubscribe();
+        });
+
+        // Expose setters for month/year controls inside controls() (via events)
+        function wireSelectors(){
+          const selects = document.querySelectorAll('select.select');
+          const btns = document.querySelectorAll('.controls .btn');
         }
 
         resubscribe();
       }
 
-      window.addEventListener('DOMContentLoaded', render);
+      window.addEventListener('DOMContentLoaded', ()=>{
+        document.body.setAttribute('data-page','attendance');
+        render();
+      });
     </script>
   </head>
-  <body>
+  <body data-page="attendance">
     <div id="app"></div>
   </body>
 </html>
