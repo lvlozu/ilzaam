@@ -3,14 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Attendance Logs — BIZOLVE</title>
+    <title>Security Officer's Attendance Logs — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <style>
-      @media print { @page { size: A4 portrait; } body[data-page="attendance"]{ zoom:.72; } .remarks-print{display:inline-block !important;} textarea.remarks{display:none !important;} }
+      @media print { 
+        @page { size: A4 portrait; } 
+        body[data-page="attendance"]{ zoom:.72; } 
+        .remarks-print{display:inline-block !important;} 
+        textarea.remarks{display:none !important;} 
+      }
       textarea.remarks { height:22px; min-height:22px; max-height:22px; line-height:14px; white-space:nowrap; overflow-x:auto; overflow-y:hidden; resize:none; }
       .remarks-wrap { display:flex; align-items:center; gap:6px; }
       .remarks-print { display:none; font-size:10px; }
       .small { font-size:10px; }
+      /* Compact row when no remarks (dash) to help fit A4 */
+      .compactRow .pad-sm { padding: 2px !important; }
+      .compactRow .text-xs { font-size: 9px !important; }
     </style>
     <script type="module">
       import { db } from './firebase-init.js';
@@ -48,7 +56,7 @@
           const wrap = document.createElement('div'); wrap.className='pad';
           const bar = document.createElement('div'); bar.style.display='grid'; bar.style.gridTemplateColumns='1fr 1fr 1fr'; bar.style.alignItems='center';
           const left = document.createElement('div'); left.className='text-sm bold'; left.textContent='BIZOLVE';
-          const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Attendance Logs</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
+          const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Security Officer\'s Attendance Logs</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
           const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
           bar.append(left, center, right); wrap.appendChild(bar); return wrap;
         }
@@ -139,7 +147,7 @@
               row.appendChild(cell);
             });
 
-            // Remarks cell — stable typing, '-' default, print mirror
+            // Remarks cell — compact if '-'
             const remarks = document.createElement('div'); remarks.className='pad-sm';
             const wrapR = document.createElement('div'); wrapR.className='remarks-wrap';
             const txt = document.createElement('textarea'); txt.className='remarks'; txt.placeholder='-';
@@ -154,9 +162,13 @@
               const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
               const next = { ...state.att, [String(d)]: { ...cur, dayRemark: val } };
               state.att = next;
+              // compact row if just a dash
+              if (val==='-') row.classList.add('compactRow'); else row.classList.remove('compactRow');
               suppressUntil = Date.now() + 600;
               setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
             }
+            // initialize compact state
+            if (initial==='-') row.classList.add('compactRow');
             txt.addEventListener('input', persist);
             txt.addEventListener('blur', persist);
             remarks.appendChild(wrapR); wrapR.append(txt, mirror);
@@ -165,10 +177,20 @@
           }
 
           window.onbeforeprint = ()=>{
+            // ensure mirrors updated
             document.querySelectorAll('textarea.remarks').forEach(el=>{
               const val = el.value.trim()==='' ? '-' : el.value;
               const sib = el.parentElement?.querySelector('.remarks-print'); if (sib) sib.textContent = val;
             });
+            // Best-effort auto-fit: adjust zoom based on table height
+            const wrap = document.getElementById('table-wrap');
+            if (wrap){
+              const h = wrap.scrollHeight;
+              // Rough landscape height @ 96dpi ~ 1122px @ zoom 1; portrait target less.
+              const target = 1000; // safe printable height
+              let scale = Math.min(.80, Math.max(.68, target / h));
+              document.body.style.zoom = String(scale);
+            }
           };
 
           return wrap;
@@ -187,22 +209,24 @@
             const d = snap.data() || {};
             state.overrides = d.overrides || {};
             state.schoolMap = d.schoolMap || {};
-            if (Date.now() < suppressUntil) return; // don't rebuild while typing
+            if (Date.now() < suppressUntil) return;
             const old = document.getElementById('table-wrap'); if (old) old.remove();
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot'); if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
+            foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
             root.appendChild(foot);
           }, ()=>{ state.overrides = {}; state.schoolMap = {}; });
 
           const aRef = attendanceRef(year, month);
           unsubAtt = onSnapshot(aRef, snap=>{
             const data = snap.data() || {}; state.att = data.rows || {};
-            if (Date.now() < suppressUntil) return; // avoid focus loss while typing
+            if (Date.now() < suppressUntil) return;
             const old = document.getElementById('table-wrap'); if (old) old.remove();
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot'); if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
+            foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
             root.appendChild(foot);
           }, ()=>{ state.att = {}; });
         }

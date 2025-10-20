@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Duty Roster — BIZOLVE</title>
+    <title>Security Officer's Duty Roster — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <style>@media print { @page { size: A4 landscape; } }</style>
     <script type="module">
@@ -32,7 +32,7 @@
           const wrap = document.createElement('div'); wrap.className='pad';
           const bar = document.createElement('div'); bar.style.display='grid'; bar.style.gridTemplateColumns='1fr 1fr 1fr'; bar.style.alignItems='center';
           const left = document.createElement('div'); left.className='text-sm bold'; left.textContent='BIZOLVE';
-          const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Duty Roster</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
+          const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Security Officer\'s Duty Roster</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
           const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
           bar.append(left, center, right); wrap.appendChild(bar); return wrap;
         }
@@ -116,8 +116,8 @@
           });
           root.appendChild(grid);
 
-          // New footer format
-          const foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9';
+          const foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9';
+          foot.style.textAlign='center';
           foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
           root.appendChild(foot);
         }
