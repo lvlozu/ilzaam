@@ -31,7 +31,27 @@
         function header(){
           const wrap = document.createElement('div'); wrap.className='pad';
           const bar = document.createElement('div'); bar.style.display='grid'; bar.style.gridTemplateColumns='1fr 1fr 1fr'; bar.style.alignItems='center';
-          const left = document.createElement('div'); left.className='text-sm bold'; left.textContent='BIZOLVE';
+const left = document.createElement('div');
+left.className='brand';
+left.innerHTML = `
+  <div style="
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #004d40;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    font-family: 'Cinzel', serif;
+  ">
+    BIZOLVE
+  </div>
+  <div style="
+    font-size: 11px;
+    color: #00796b;
+    font-weight: 500;
+    margin-top: -3px;
+  ">
+  </div>
+`;
           const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Security Officer\'s Duty Roster</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
           const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
           bar.append(left, center, right); wrap.appendChild(bar); return wrap;
