@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WC — BIZOLVE Hidhaya School Sec</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="bar pad-lg center">
+      <div class="pill" style="display:inline-block;padding:8px 12px;border-radius:9999px;border:1px dashed #93c5fd;background:#f0f9ff;color:#1e40af;font-weight:700;">WC</div>
+      <div class="text-2xl" style="margin-top:8px">Welcome to BIZOLVE | Hidhaya School Security Console</div>
+      <div class="muted" style="margin-top:10px">View Duty Roster or Attendance Logs. Print-ready A4 exports. All data stored in Firestore (no sign‑in).</div>
+      <div class="controls" style="justify-content:center;margin-top:18px">
+        <a class="btn btn-lg" href="./roster.html">Open Duty Roster</a>
+        <a class="btn btn-lg" href="./attendance.html">Open Attendance Logs</a>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="card" style="padding:16px">
+        <div class="text-lg">How it works</div>
+        <ul class="muted" style="margin-top:8px; line-height:1.7">
+          <li>• Click any date in the roster to toggle: Normal → Public Holiday → School Holiday.</li>
+          <li>• Fridays & Saturdays are always Holidays (blue) by default.</li>
+          <li>• Attendance page shows one row per day and three shift columns.</li>
+          <li>• Today marks “PRESENT” only for shifts that have already started.</li>
+          <li>• Type remarks for incidents once per day (rightmost column) — auto-saves.</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

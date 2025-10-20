@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Duty Roster — BIZOLVE</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module">
+      import { app, db } from './firebase-init.js';
+      import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+      import { PROVIDER, CLIENT, OWNER_LINE, SITE_ID, STAFF, daysInMonth, startOfMonthWeekday, formatMonthYear, monthShort, pad, isWeekendHoliday, staffName, displayStartMinute } from './shared.js';
+
+      function rosterDoc(year, month){
+        const ym = `${year}${String(month+1).padStart(2,'0')}`;
+        return doc(db, 'rosters', `${SITE_ID}_${ym}`);
+      }
+
+      function computeShiftsForDate(date, isSchoolHoliday, override){
+        const weekendHol = isWeekendHoliday(date);
+        const forcedHoliday = override === 1;
+        const forcedSchool = override === 2;
+        if (forcedHoliday || (!forcedSchool && !forcedHoliday && weekendHol)){
+          return [
+            { label:'Shift 1', time:'23:00–07:00', staffId: STAFF.ibrahim.id },
+            { label:'Shift 2', time:'07:00–15:00', staffId: STAFF.rizaana.id },
+            { label:'Shift 3', time:'15:00–23:00', staffId: STAFF.saeedha.id },
+          ];
+        }
+        if (forcedSchool || isSchoolHoliday){
+          return [
+            { label:'Shift 1', time:'00:00–08:00', staffId: STAFF.ibrahim.id },
+            { label:'Shift 2', time:'14:00–16:00', staffId: STAFF.rizaana.id },
+            { label:'Shift 3', time:'16:00–00:00', staffId: STAFF.saeedha.id },
+          ];
+        }
+        return [
+          { label:'Shift 1', time:'23:00–07:00', staffId: STAFF.ibrahim.id },
+          { label:'Shift 2', grey:true },
+          { label:'Shift 3', time:'15:00–23:00', staffId: STAFF.saeedha.id },
+        ];
+      }
+
+      function render(){
+        const root = document.getElementById('app');
+        root.innerHTML = '';
+
+        const now = new Date();
+        let year = parseInt(sessionStorage.getItem('yr') || now.getFullYear());
+        let month = parseInt(sessionStorage.getItem('mo') || now.getMonth());
+        const state = { overrides:{}, schoolMap:{} };
+
+        function saveYM(){ sessionStorage.setItem('yr', String(year)); sessionStorage.setItem('mo', String(month)); }
+
+        function mount(){
+          const len = daysInMonth(year, month);
+          const som = startOfMonthWeekday(year, month);
+          const label = formatMonthYear(year, month);
+
+          const prevMonthDate = new Date(year, month, 0);
+          const prevDays = prevMonthDate.getDate();
+          const leading = som;
+          const trailing = (7 - ((leading + len) % 7)) % 7;
+          const cells = [];
+          for (let i=leading;i>0;i--) cells.push({ date: new Date(year, month-1, prevDays - i + 1), outside: true});
+          for (let d=1; d<=len; d++) cells.push({ date: new Date(year, month, d), outside: false});
+          for (let i=1; i<=trailing; i++) cells.push({ date: new Date(year, month+1, i), outside: true});
+
+          const header = document.createElement('div');
+          header.className = 'mbar';
+          header.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div><a class="btn" href="./attendance.html">Go to Attendance</a>';
+          root.appendChild(header);
+
+          const band = document.createElement('div');
+          band.className = 'bar pad center';
+          band.innerHTML = [
+            `<div class="text-xl">${PROVIDER}</div>`,
+            `<div class="text-lg">Duty Roster</div>`,
+            `<div class="text-sm">Month: ${label} (${pad(1)} – ${pad(len)})</div>`,
+            `<div class="text-sm">For ${CLIENT}</div>`,
+          ].join('');
+          root.appendChild(band);
+
+          const controls = document.createElement('div');
+          controls.className = 'pad controls';
+          const prevBtn = document.createElement('button'); prevBtn.className='btn'; prevBtn.textContent='Prev';
+          const nextBtn = document.createElement('button'); nextBtn.className='btn'; nextBtn.textContent='Next';
+          const lab = document.createElement('div'); lab.className='bold'; lab.textContent = label;
+          prevBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()-1); year=d.getFullYear(); month=d.getMonth(); saveYM(); subscribe(); };
+          nextBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()+1); year=d.getFullYear(); month=d.getMonth(); saveYM(); subscribe(); };
+          controls.append(prevBtn, lab, nextBtn);
+          root.appendChild(controls);
+
+          const weekdays = document.createElement('div');
+          weekdays.className = 'grid7 muted text-xs center';
+          weekdays.style.marginBottom = '8px';
+          ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>{
+            const el=document.createElement('div'); el.textContent=d; el.style.padding='6px 0'; weekdays.appendChild(el);
+          });
+          root.appendChild(weekdays);
+
+          const grid = document.createElement('div'); grid.className = 'grid7';
+          cells.forEach((cell)=>{
+            const date = cell.date;
+            const dNum = date.getDate();
+            const dayKey = date.getMonth()===month ? dNum : null;
+            const schoolHol = dayKey ? !!state.schoolMap[String(dayKey)] : false;
+            const override = dayKey ? (state.overrides[String(dayKey)] ?? 0) : 0;
+            const shifts = computeShiftsForDate(date, schoolHol, override);
+            const isWeekend = isWeekendHoliday(date);
+            const isHoliday = isWeekend || override===1;
+            const isSchool = !isHoliday && (override===2 || (override===0 && schoolHol));
+            const sorted = [...shifts].sort((a,b)=> displayStartMinute(a.time) - displayStartMinute(b.time));
+
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'cell' + (cell.outside?' muted':'') + (isHoliday?' holiday':'') + (isSchool?' school':'');
+            if (dayKey){
+              cellDiv.onclick = ()=> {
+                const curr = state.overrides[String(dayKey)] ?? 0;
+                const nxt = (curr + 1) % 3;
+                state.overrides[String(dayKey)] = nxt;
+                setDoc(rosterDoc(year, month), { siteId: SITE_ID, year, month, overrides: state.overrides, schoolMap: state.schoolMap }, { merge: true });
+              };
+            }
+            const mm = document.createElement('div'); mm.className='mm'; mm.textContent = monthShort(date.getFullYear(), date.getMonth());
+            const wm = document.createElement('div'); wm.className='wm'; wm.textContent = dNum;
+            cellDiv.append(mm, wm);
+
+            const inner = document.createElement('div');
+            inner.style.position='absolute'; inner.style.inset='0'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.justifyContent='flex-end';
+            sorted.forEach((s,i)=>{
+              const row = document.createElement('div');
+              row.className = 'row ' + (i%2===0?'altA':'altB') + (s.grey?' noduty':'');
+              const left=document.createElement('div'); left.className='bold'; left.textContent = s.time || '—';
+              const right=document.createElement('div'); right.textContent = s.staffId? staffName(s.staffId): '';
+              row.append(left,right);
+              inner.appendChild(row);
+            });
+            cellDiv.appendChild(inner);
+
+            grid.appendChild(cellDiv);
+          });
+          root.appendChild(grid);
+
+          const footer = document.createElement('div'); footer.className='pad center text-xs'; footer.style.background='#f1f8e9'; footer.textContent = OWNER_LINE;
+          root.appendChild(footer);
+        }
+
+        let unsubscribe = ()=>{};
+        function subscribe(){
+          unsubscribe();
+          const ref = rosterDoc(year, month);
+          unsubscribe = onSnapshot(ref, snap=>{
+            const d = snap.data() || {};
+            state.overrides = d.overrides || {};
+            state.schoolMap = d.schoolMap || {};
+            mount();
+          }, ()=>{
+            state.overrides = {}; state.schoolMap = {}; mount();
+          });
+        }
+
+        subscribe();
+      }
+
+      window.addEventListener('DOMContentLoaded', render);
+    </script>
+  </head>
+  <body>
+    <div class="mbar">
+      <a class="btn" href="./WC.html">← Back to WC</a>
+      <div class="grow"></div>
+      <a class="btn" href="./attendance.html">Go to Attendance</a>
+    </div>
+    <div id="app"></div>
+  </body>
+</html>
