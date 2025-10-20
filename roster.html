@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Security Officer's Duty Roster — BIZOLVE </title>
+    <title>Duty Roster — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <style>@media print { @page { size: A4 landscape; } }</style>
     <script type="module">
@@ -116,8 +116,10 @@
           });
           root.appendChild(grid);
 
-          const footer = document.createElement('div'); footer.id='foot'; footer.className='pad center text-xs'; footer.style.background='#f1f8e9'; footer.textContent = 'Supervised & Managed by Hassan Irfan Mohamed (BIZOLVE) — Electronic Signature Verified';
-          root.appendChild(footer);
+          // New footer format
+          const foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9';
+          foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
+          root.appendChild(foot);
         }
 
         function subscribe(){

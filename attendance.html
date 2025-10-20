@@ -6,31 +6,16 @@
     <title>Attendance Logs — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <style>
-      /* Print: show read-only mirror of remarks; hide textareas */
-      @media print {
-        @page { size: A4 portrait; }
-        body[data-page="attendance"]{ zoom:.72; }
-        .remarks-print { display:inline-block !important; }
-        textarea.remarks { display:none !important; }
-      }
-      /* Single-line textarea specifics (avoid 2-lines visual) */
-      textarea.remarks {
-        height:22px !important;
-        min-height:22px !important;
-        max-height:22px !important;
-        line-height:14px !important;
-        white-space:nowrap !important;
-        overflow-x:auto !important;
-        overflow-y:hidden !important;
-        resize:none !important;
-      }
+      @media print { @page { size: A4 portrait; } body[data-page="attendance"]{ zoom:.72; } .remarks-print{display:inline-block !important;} textarea.remarks{display:none !important;} }
+      textarea.remarks { height:22px; min-height:22px; max-height:22px; line-height:14px; white-space:nowrap; overflow-x:auto; overflow-y:hidden; resize:none; }
       .remarks-wrap { display:flex; align-items:center; gap:6px; }
       .remarks-print { display:none; font-size:10px; }
+      .small { font-size:10px; }
     </style>
     <script type="module">
       import { db } from './firebase-init.js';
       import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-      import { SITE_ID, daysInMonth, formatMonthYear, pad, weekdayShort, isWeekendHoliday, monthShort, staffName, computeShiftsForDate } from './shared.js';
+      import { SITE_ID, daysInMonth, formatMonthYear, weekdayShort, isWeekendHoliday, monthShort, staffName, computeShiftsForDate } from './shared.js';
 
       function attendanceRef(year, month){ const ym = `${year}${String(month+1).padStart(2,'0')}`; return doc(db, 'attendance', `${SITE_ID}_${ym}`); }
       function rosterRef(year, month){ const ym = `${year}${String(month+1).padStart(2,'0')}`; return doc(db, 'rosters', `${SITE_ID}_${ym}`); }
@@ -57,6 +42,7 @@
         let month = parseInt(sessionStorage.getItem('mo') || now.getMonth());
         const state = { overrides:{}, schoolMap:{}, att:{} };
         let unsubRoster = ()=>{}; let unsubAtt = ()=>{};
+        let suppressUntil = 0; // avoid rebuild while typing
 
         function header(){
           const wrap = document.createElement('div'); wrap.className='pad';
@@ -97,7 +83,7 @@
 
           const head = document.createElement('div');
           head.className='pad-sm bold text-xs header-att cols-att';
-          head.innerHTML = '<div>Day</div><div>Wk</div><div>S1</div><div>S2</div><div>S3</div><div>Remarks</div>';
+          head.innerHTML = '<div>Date</div><div>Day</div><div>Shift 1</div><div>Shift 2</div><div>Shift 3</div><div>Incidents &amp; Important Events</div>';
           card.appendChild(head);
 
           const today = new Date(); const nowMin = today.getHours()*60 + today.getMinutes();
@@ -112,8 +98,11 @@
             row.className = (isHol ? 'holiday' : (isSchool ? 'school' : ''));
             row.classList.add('cols-att'); row.style.borderTop='1px solid #e5e7eb';
 
-            const dCell = document.createElement('div'); dCell.className='pad-sm bold'; dCell.textContent = `${String(d).padStart(2,'0')} ${monthShort(year,month)}`;
-            const wCell = document.createElement('div'); wCell.className='pad-sm muted'; wCell.textContent = weekdayShort(date.getDay());
+            const dCell = document.createElement('div'); dCell.className='pad-sm bold';
+            const dd = String(d).padStart(2,'0');
+            const monthFull = new Date(year, month, 1).toLocaleString('en', { month: 'long' });
+            dCell.innerHTML = dd + ' <span class="small">'+monthFull+'</span>';
+            const wCell = document.createElement('div'); wCell.className='pad-sm muted small'; wCell.textContent = new Date(year,month,d).toLocaleString('en',{ weekday:'long'});
             row.append(dCell, wCell);
 
             const record = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
@@ -141,6 +130,7 @@
                 const rows = cur.rows.map((r,i)=> i===idx ? { ...r, status: nextStatus } : r);
                 const next = { ...state.att, [String(d)]: { ...cur, rows } };
                 state.att = next;
+                suppressUntil = Date.now() + 600;
                 setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
                 stamp.replaceWith(chip(nextStatus));
               };
@@ -149,14 +139,13 @@
               row.appendChild(cell);
             });
 
-            // Remarks cell — single-line input with '-' default and print mirror
+            // Remarks cell — stable typing, '-' default, print mirror
             const remarks = document.createElement('div'); remarks.className='pad-sm';
             const wrapR = document.createElement('div'); wrapR.className='remarks-wrap';
             const txt = document.createElement('textarea'); txt.className='remarks'; txt.placeholder='-';
             let initial = (record.dayRemark && record.dayRemark.trim()!=='' ? record.dayRemark : '-');
             txt.value = initial;
             const mirror = document.createElement('span'); mirror.className='remarks-print'; mirror.textContent = initial;
-            // Behavior: single line, no newline, dash default
             txt.addEventListener('keydown', (e)=>{ if (e.key==='Enter') { e.preventDefault(); e.stopPropagation(); } });
             txt.addEventListener('focus', ()=>{ if (txt.value.trim()==='-') { txt.value=''; } });
             function persist(){
@@ -165,6 +154,7 @@
               const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
               const next = { ...state.att, [String(d)]: { ...cur, dayRemark: val } };
               state.att = next;
+              suppressUntil = Date.now() + 600;
               setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
             }
             txt.addEventListener('input', persist);
@@ -174,7 +164,6 @@
             card.appendChild(row);
           }
 
-          // Keep print mirrors current just before printing
           window.onbeforeprint = ()=>{
             document.querySelectorAll('textarea.remarks').forEach(el=>{
               const val = el.value.trim()==='' ? '-' : el.value;
@@ -186,7 +175,6 @@
         }
 
         function resubscribe(){
-          // Build chrome once per (re)subscribe
           root.innerHTML='';
           const len = daysInMonth(year, month);
           const nav = document.createElement('div'); nav.className='mbar print-hide'; nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div>'; root.appendChild(nav);
@@ -199,20 +187,22 @@
             const d = snap.data() || {};
             state.overrides = d.overrides || {};
             state.schoolMap = d.schoolMap || {};
+            if (Date.now() < suppressUntil) return; // don't rebuild while typing
             const old = document.getElementById('table-wrap'); if (old) old.remove();
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot'); if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = 'Supervised & Managed by Hassan Irfan Mohamed (BIZOLVE) — Electronic Signature Verified';
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
             root.appendChild(foot);
           }, ()=>{ state.overrides = {}; state.schoolMap = {}; });
 
           const aRef = attendanceRef(year, month);
           unsubAtt = onSnapshot(aRef, snap=>{
             const data = snap.data() || {}; state.att = data.rows || {};
+            if (Date.now() < suppressUntil) return; // avoid focus loss while typing
             const old = document.getElementById('table-wrap'); if (old) old.remove();
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot'); if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = 'Supervised & Managed by Hassan Irfan Mohamed (BIZOLVE) — Electronic Signature Verified';
+            foot = document.createElement('div'); foot.id='foot'; foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
             root.appendChild(foot);
           }, ()=>{ state.att = {}; });
         }
