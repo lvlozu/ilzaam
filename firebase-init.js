@@ -1,6 +1,5 @@
 // firebase-init.js — shared Firebase init (no auth).
 // Fill SITE_KEY with your App Check reCAPTCHA v3 site key.
-// Project: bizolve-hs-sec
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -21,9 +20,6 @@ export const db = getFirestore(app);
 
 // App Check (no login required)
 const SITE_KEY = "PUT_YOUR_RECAPTCHA_V3_SITE_KEY_HERE";
-
-// For local dev you can uncomment next line to allow debug tokens:
-// self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 
 initializeAppCheck(app, {
   provider: new ReCaptchaV3Provider(SITE_KEY),

@@ -6,15 +6,15 @@
     <title>Attendance Logs — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <script type="module">
-      import { app, db } from './firebase-init.js';
+      import { db } from './firebase-init.js';
       import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-      import { PROVIDER, CLIENT, OWNER_LINE, SITE_ID, STAFF, daysInMonth, formatMonthYear, pad, weekdayShort, isWeekendHoliday, monthShort, staffName } from './shared.js';
+      import { PROVIDER, CLIENT, OWNER_LINE, SITE_ID, daysInMonth, formatMonthYear, pad, weekdayShort, isWeekendHoliday, monthShort, staffName, computeShiftsForDate } from './shared.js';
 
-      function attendanceDoc(year, month){
+      function attendanceRef(year, month){
         const ym = `${year}${String(month+1).padStart(2,'0')}`;
         return doc(db, 'attendance', `${SITE_ID}_${ym}`);
       }
-      function rosterDoc(year, month){
+      function rosterRef(year, month){
         const ym = `${year}${String(month+1).padStart(2,'0')}`;
         return doc(db, 'rosters', `${SITE_ID}_${ym}`);
       }
@@ -22,34 +22,9 @@
       function parseHHMM(h){ const [hh,mm]=h.split(':'); return (+hh)*60+(+mm); }
       function onDayStartMinute(time){ if(!time) return Infinity; const [a,b]=time.split('–'); const s=parseHHMM(a); const e=parseHHMM(b); if(s<=e) return s; if(e===0) return s; return 0; }
 
-      function computeShiftsForDate(date, schoolHoliday, override){
-        const d = date.getDay(); const weekendHol = (d===5 || d===6);
-        const forcedHoliday = override===1; const forcedSchool = override===2;
-        if (forcedHoliday || (!forcedSchool && !forcedHoliday && weekendHol)){
-          return [
-            { label:'Shift 1', time:'23:00–07:00', staffId: STAFF.ibrahim.id },
-            { label:'Shift 2', time:'07:00–15:00', staffId: STAFF.rizaana.id },
-            { label:'Shift 3', time:'15:00–23:00', staffId: STAFF.saeedha.id },
-          ];
-        }
-        if (forcedSchool || schoolHoliday){
-          return [
-            { label:'Shift 1', time:'00:00–08:00', staffId: STAFF.ibrahim.id },
-            { label:'Shift 2', time:'14:00–16:00', staffId: STAFF.rizaana.id },
-            { label:'Shift 3', time:'16:00–00:00', staffId: STAFF.saeedha.id },
-          ];
-        }
-        return [
-          { label:'Shift 1', time:'23:00–07:00', staffId: STAFF.ibrahim.id },
-          { label:'Shift 2', grey:true },
-          { label:'Shift 3', time:'15:00–23:00', staffId: STAFF.saeedha.id },
-        ];
-      }
-
       function render(){
         const root = document.getElementById('app');
-        root.innerHTML = '';
-
+        root.innerHTML = ''; // clear on render
         const now = new Date();
         let year = parseInt(sessionStorage.getItem('yr') || now.getFullYear());
         let month = parseInt(sessionStorage.getItem('mo') || now.getMonth());
@@ -57,25 +32,49 @@
 
         function saveYM(){ sessionStorage.setItem('yr', String(year)); sessionStorage.setItem('mo', String(month)); }
 
-        function header(){
+        function buildHeader(len){
           const band = document.createElement('div');
           band.className='bar pad center';
-          const len = daysInMonth(year, month);
           const label = formatMonthYear(year, month);
           band.innerHTML = [
-            `<div class="text-xl">BIZOLVE</div>`,
+            `<div class="text-xl">${PROVIDER}</div>`,
             `<div class="text-lg">Attendance Logs</div>`,
             `<div class="text-sm">Month: ${label} (01 – ${pad(len)})</div>`,
-            `<div class="text-sm">For Hidhaya School / N. Miladhoo</div>`
+            `<div class="text-sm">For ${CLIENT}</div>`
           ].join('');
           return band;
         }
 
-        function table(){
-          const len = daysInMonth(year, month);
+        function buildControls(){
+          const wrap = document.createElement('div'); wrap.className='pad controls print-hide';
+          const prevBtn = document.createElement('button'); prevBtn.className='btn'; prevBtn.textContent='Prev';
+          const nextBtn = document.createElement('button'); nextBtn.className='btn'; nextBtn.textContent='Next';
+          const lab = document.createElement('div'); lab.className='bold';
+          const monthSel = document.createElement('select'); monthSel.className='select';
+          const yearSel = document.createElement('select'); yearSel.className='select';
+          const setLab = ()=> lab.textContent = formatMonthYear(year, month);
+          setLab();
+          for(let i=0;i<12;i++){ const o=document.createElement('option'); o.value=String(i); o.textContent = new Date(2025,i,1).toLocaleString('en',{month:'long'}); if(i===month) o.selected=true; monthSel.appendChild(o); }
+          const baseYear = new Date().getFullYear(); for(let i=-2;i<=3;i++){ const y=baseYear+i; const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); if(y===year) o.selected=true; yearSel.appendChild(o); }
+          prevBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()-1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
+          nextBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()+1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
+          monthSel.onchange = ()=>{ month = parseInt(monthSel.value); saveYM(); resubscribe(); };
+          yearSel.onchange = ()=>{ year = parseInt(yearSel.value); saveYM(); resubscribe(); };
+          wrap.append(prevBtn, lab, nextBtn, monthSel, yearSel);
+          return wrap;
+        }
+
+        function buildNav(){
+          const nav = document.createElement('div');
+          nav.className='mbar print-hide';
+          nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div><button class="btn" id="printBtn">Print / Save PDF</button>';
+          setTimeout(()=>{ document.getElementById('printBtn').onclick = ()=>window.print(); }, 0);
+          return nav;
+        }
+
+        function buildTable(len){
           const wrap = document.createElement('div'); wrap.className='pad';
           const card = document.createElement('div'); card.className='card'; wrap.appendChild(card);
-
           const head = document.createElement('div');
           head.className='pad-sm bold text-xs';
           head.style.background = '#e3f2fd';
@@ -100,7 +99,7 @@
 
             const record = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
 
-            function stampEl(status){
+            function stamp(status){
               const span = document.createElement('span'); span.className='stamp';
               if (status==='present'){ span.classList.add('present'); span.textContent='PRESENT'; }
               else if (status==='absent'){ span.classList.add('absent'); span.textContent='ABSENT'; }
@@ -119,13 +118,14 @@
               if (!status){
                 if (!sameMonth || d < todayD) status = 'present';
                 else if (sameMonth && d===todayD){
+                  const [a] = s.time.split('–');
                   const start = onDayStartMinute(s.time);
                   if (start!==Infinity && nowMin>=start) status='present';
                 }
               }
               const t1 = document.createElement('div'); t1.className='text-xs bold'; t1.textContent=s.time;
               const t2 = document.createElement('div'); t2.className='text-xs'; t2.textContent = staffName(s.staffId);
-              const btn = document.createElement('button'); btn.className='btn'; btn.appendChild(stampEl(status));
+              const btn = document.createElement('button'); btn.className='btn'; btn.appendChild(stamp(status));
               btn.onclick = ()=>{
                 const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
                 const old = cur.rows[idx] || {};
@@ -133,8 +133,11 @@
                 const rows = cur.rows.map((r,i)=> i===idx ? { ...r, status: nextStatus } : r);
                 const next = { ...state.att, [String(d)]: { ...cur, rows } };
                 state.att = next;
-                setDoc(attendanceDoc(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-                render();
+                setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
+                // Re-render to refresh stamp styles
+                const oldWrap = document.getElementById('table-wrap');
+                if (oldWrap) oldWrap.remove();
+                const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
               };
               cell.append(t1,t2,btn);
               row.appendChild(cell);
@@ -143,72 +146,56 @@
             const remarks = document.createElement('div'); remarks.className='pad-sm';
             const txt = document.createElement('textarea'); txt.placeholder = 'Record incidents / important remarks';
             txt.value = record.dayRemark || '';
-            txt.oninput = (e)=>{
+            txt.oninput = ()=>{
               const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
               const next = { ...state.att, [String(d)]: { ...cur, dayRemark: txt.value } };
               state.att = next;
-              setDoc(attendanceDoc(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
+              setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
             };
             remarks.appendChild(txt);
             row.appendChild(remarks);
             card.appendChild(row);
           }
-
           return wrap;
-        }
-
-        function nav(){
-          const bar = document.createElement('div');
-          bar.className='mbar';
-          const back = document.createElement('a'); back.className='btn'; back.href='./WC.html'; back.textContent='← Back to WC';
-          const grow = document.createElement('div'); grow.className='grow';
-          const toRoster = document.createElement('a'); toRoster.className='btn'; toRoster.href='./roster.html'; toRoster.textContent='Go to Roster';
-          bar.append(back, grow, toRoster);
-          return bar;
-        }
-
-        function controls(){
-          const wrap = document.createElement('div'); wrap.className='pad controls';
-          const prevBtn = document.createElement('button'); prevBtn.className='btn'; prevBtn.textContent='Prev';
-          const nextBtn = document.createElement('button'); nextBtn.className='btn'; nextBtn.textContent='Next';
-          const lab = document.createElement('div'); lab.className='bold';
-          const setLab = ()=> lab.textContent = formatMonthYear(year, month);
-          setLab();
-          prevBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()-1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
-          nextBtn.onclick = ()=>{ const d=new Date(year,month,1); d.setMonth(d.getMonth()+1); year=d.getFullYear(); month=d.getMonth(); saveYM(); resubscribe(); };
-          wrap.append(prevBtn, lab, nextBtn);
-          return { wrap, setLab };
         }
 
         let unsubRoster = ()=>{}; let unsubAtt = ()=>{};
         function resubscribe(){
           unsubRoster(); unsubAtt();
-          const hdr = header();
-          const navBar = nav();
-          const ctrl = controls();
-          root.innerHTML='';
-          root.append(navBar, hdr, ctrl.wrap);
+          root.innerHTML=''; // clear everything before rebuild
+          const len = daysInMonth(year, month);
+          root.appendChild(buildNav());
+          root.appendChild(buildHeader(len));
+          root.appendChild(buildControls());
 
-          const rRef = rosterDoc(year, month);
+          const rRef = rosterRef(year, month);
           unsubRoster = onSnapshot(rRef, snap=>{
             const d = snap.data() || {};
             state.overrides = d.overrides || {};
             state.schoolMap = d.schoolMap || {};
-            ctrl.setLab();
-            const tbl = table();
-            // Replace existing table/card section
             const old = document.getElementById('table-wrap');
             if (old) old.remove();
-            tbl.id = 'table-wrap';
-            root.appendChild(tbl);
+            const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
+            const foot = document.createElement('div'); foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
+            root.appendChild(foot);
+          }, ()=>{
+            state.overrides = {}; state.schoolMap = {};
+            const old = document.getElementById('table-wrap');
+            if (old) old.remove();
+            const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
             const foot = document.createElement('div'); foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
             root.appendChild(foot);
           });
 
-          const aRef = attendanceDoc(year, month);
+          const aRef = attendanceRef(year, month);
           unsubAtt = onSnapshot(aRef, snap=>{
             const data = snap.data() || {}; state.att = data.rows || {};
-            // table will be re-rendered when roster snapshot also fires or next month switch
+            // rebuild table to reflect attendance change
+            const old = document.getElementById('table-wrap');
+            if (old) old.remove();
+            const tbl = buildTable(len); tbl.id = 'table-wrap'; root.appendChild(tbl);
+            const foot = document.createElement('div'); foot.className='pad center text-xs'; foot.style.background='#f1f8e9'; foot.textContent = OWNER_LINE;
+            root.appendChild(foot);
           }, ()=>{ state.att = {}; });
         }
 
@@ -219,11 +206,6 @@
     </script>
   </head>
   <body>
-    <div class="mbar">
-      <a class="btn" href="./WC.html">← Back to WC</a>
-      <div class="grow"></div>
-      <a class="btn" href="./roster.html">Go to Roster</a>
-    </div>
     <div id="app"></div>
   </body>
 </html>
