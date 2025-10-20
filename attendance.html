@@ -5,7 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attendance Logs — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
-    <style>@media print { @page { size: A4 portrait; } body[data-page="attendance"]{ zoom:.72; } }</style>
+    <style>
+      /* Print: show read-only mirror of remarks; hide textareas */
+      @media print {
+        @page { size: A4 portrait; }
+        body[data-page="attendance"]{ zoom:.72; }
+        .remarks-print { display:inline-block !important; }
+        textarea.remarks { display:none !important; }
+      }
+      /* Single-line textarea specifics (avoid 2-lines visual) */
+      textarea.remarks {
+        height:22px !important;
+        min-height:22px !important;
+        max-height:22px !important;
+        line-height:14px !important;
+        white-space:nowrap !important;
+        overflow-x:auto !important;
+        overflow-y:hidden !important;
+        resize:none !important;
+      }
+      .remarks-wrap { display:flex; align-items:center; gap:6px; }
+      .remarks-print { display:none; font-size:10px; }
+    </style>
     <script type="module">
       import { db } from './firebase-init.js';
       import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -91,7 +112,7 @@
             row.className = (isHol ? 'holiday' : (isSchool ? 'school' : ''));
             row.classList.add('cols-att'); row.style.borderTop='1px solid #e5e7eb';
 
-            const dCell = document.createElement('div'); dCell.className='pad-sm bold'; dCell.textContent = f`${str(d).zfill(2)} ${monthShort(year,month)}`;
+            const dCell = document.createElement('div'); dCell.className='pad-sm bold'; dCell.textContent = `${String(d).padStart(2,'0')} ${monthShort(year,month)}`;
             const wCell = document.createElement('div'); wCell.className='pad-sm muted'; wCell.textContent = weekdayShort(date.getDay());
             row.append(dCell, wCell);
 
@@ -128,24 +149,44 @@
               row.appendChild(cell);
             });
 
+            // Remarks cell — single-line input with '-' default and print mirror
             const remarks = document.createElement('div'); remarks.className='pad-sm';
-            const txt = document.createElement('textarea'); txt.placeholder='...'; txt.style.minHeight='24px';
-            txt.value = record.dayRemark || '';
-            txt.oninput = ()=>{
+            const wrapR = document.createElement('div'); wrapR.className='remarks-wrap';
+            const txt = document.createElement('textarea'); txt.className='remarks'; txt.placeholder='-';
+            let initial = (record.dayRemark && record.dayRemark.trim()!=='' ? record.dayRemark : '-');
+            txt.value = initial;
+            const mirror = document.createElement('span'); mirror.className='remarks-print'; mirror.textContent = initial;
+            // Behavior: single line, no newline, dash default
+            txt.addEventListener('keydown', (e)=>{ if (e.key==='Enter') { e.preventDefault(); e.stopPropagation(); } });
+            txt.addEventListener('focus', ()=>{ if (txt.value.trim()==='-') { txt.value=''; } });
+            function persist(){
+              const val = txt.value.trim()==='' ? '-' : txt.value;
+              mirror.textContent = val;
               const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
-              const next = { ...state.att, [String(d)]: { ...cur, dayRemark: txt.value } };
+              const next = { ...state.att, [String(d)]: { ...cur, dayRemark: val } };
               state.att = next;
               setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-            };
-            remarks.appendChild(txt);
+            }
+            txt.addEventListener('input', persist);
+            txt.addEventListener('blur', persist);
+            remarks.appendChild(wrapR); wrapR.append(txt, mirror);
             row.appendChild(remarks);
             card.appendChild(row);
           }
+
+          // Keep print mirrors current just before printing
+          window.onbeforeprint = ()=>{
+            document.querySelectorAll('textarea.remarks').forEach(el=>{
+              const val = el.value.trim()==='' ? '-' : el.value;
+              const sib = el.parentElement?.querySelector('.remarks-print'); if (sib) sib.textContent = val;
+            });
+          };
 
           return wrap;
         }
 
         function resubscribe(){
+          // Build chrome once per (re)subscribe
           root.innerHTML='';
           const len = daysInMonth(year, month);
           const nav = document.createElement('div'); nav.className='mbar print-hide'; nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div>'; root.appendChild(nav);
