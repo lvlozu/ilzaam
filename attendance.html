@@ -11,14 +11,20 @@
         body[data-page="attendance"]{ zoom:.72; } 
         .remarks-print{display:inline-block !important;} 
         textarea.remarks{display:none !important;} 
+        .print-hide { display:none !important; }
       }
       textarea.remarks { height:22px; min-height:22px; max-height:22px; line-height:14px; white-space:nowrap; overflow-x:auto; overflow-y:hidden; resize:none; }
       .remarks-wrap { display:flex; align-items:center; gap:6px; }
       .remarks-print { display:none; font-size:10px; }
       .small { font-size:10px; }
-      /* Compact row when no remarks (dash) to help fit A4 */
       .compactRow .pad-sm { padding: 2px !important; }
       .compactRow .text-xs { font-size: 9px !important; }
+      .editable { cursor:text; border-bottom:1px dotted transparent; }
+      .editable:hover { border-color:#94a3b8; }
+      input.inline-edit {
+        font-size: 12px; padding: 1px 4px; border:1px solid #cbd5e1; border-radius:6px;
+        width: 140px; max-width: 160px;
+      }
     </style>
     <script type="module">
       import { db } from './firebase-init.js';
@@ -55,27 +61,7 @@
         function header(){
           const wrap = document.createElement('div'); wrap.className='pad';
           const bar = document.createElement('div'); bar.style.display='grid'; bar.style.gridTemplateColumns='1fr 1fr 1fr'; bar.style.alignItems='center';
-const left = document.createElement('div');
-left.className='brand';
-left.innerHTML = `
-  <div style="
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #004d40;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-    font-family: 'Cinzel', serif;
-  ">
-    BIZOLVE
-  </div>
-  <div style="
-    font-size: 11px;
-    color: #00796b;
-    font-weight: 500;
-    margin-top: -3px;
-  ">
-  </div>
-`;
+          const left = document.createElement('div'); left.className='text-sm bold'; left.innerHTML='<div style="font-size:26px;font-weight:700;letter-spacing:1px;color:#004d40;text-shadow:1px 1px 2px rgba(0,0,0,0.2);font-family:Cinzel,serif">BIZOLVE</div><div style="font-size:11px;color:#00796b;font-weight:500;margin-top:-3px;">Security Services Division</div>';
           const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Security Officer\'s Attendance Logs</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
           const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
           bar.append(left, center, right); wrap.appendChild(bar); return wrap;
@@ -98,11 +84,13 @@ left.innerHTML = `
           return wrap;
         }
 
-        function chip(status){
-          const span = document.createElement('span');
-          span.className = 'badge ' + (status==='present' ? 'present' : (status==='absent' ? 'absent' : ''));
-          span.innerHTML = (status==='present') ? '✓&nbsp;Present' : (status==='absent' ? '✗&nbsp;Absent' : '—');
-          return span;
+        function chipSet(el, status){
+          el.dataset.status = (status===undefined? '' : status);
+          el.className = 'badge ' + (status==='present' ? 'present' : (status==='absent' ? 'absent' : ''));
+          el.innerHTML = (status==='present') ? '✓&nbsp;Present' : (status==='absent' ? '✗&nbsp;Absent' : '—');
+        }
+        function makeChip(status){
+          const span = document.createElement('span'); chipSet(span, status); return span;
         }
 
         function build(len){
@@ -138,8 +126,12 @@ left.innerHTML = `
             shifts.forEach((s, idx)=>{
               const cell = document.createElement('div'); cell.className='pad-sm';
               if (s.grey){ cell.classList.add('noduty'); row.appendChild(cell); return; }
-              const rec = (record.rows[idx] || {});
-              let status = rec.status;
+              const saved = (record.rows[idx] || {});
+              const baseName = shortName(staffName(saved.staffId || s.staffId));
+              const displayName = saved.customName && saved.customName.trim()!=='' ? saved.customName : baseName;
+
+              // Resolve status (auto present for past days; for today only after shift start)
+              let status = saved.status;
               if (!status){
                 if (isPastDay(date)) status = 'present';
                 else if (isTodayDay(date)){
@@ -147,27 +139,62 @@ left.innerHTML = `
                   if (start!==Infinity && nowMin>=start) status='present';
                 }
               }
+
               const line = document.createElement('div'); line.className='inline';
               const t1 = document.createElement('div'); t1.className='text-xs bold'; t1.textContent=s.time;
-              const t2 = document.createElement('div'); t2.className='text-xs'; t2.textContent = shortName(staffName(s.staffId));
-              const stamp = chip(status); stamp.style.cursor='pointer';
+
+              // Editable officer name
+              const nameWrap = document.createElement('div'); nameWrap.style.display='flex'; nameWrap.style.alignItems='center'; nameWrap.style.gap='6px';
+              const nameText = document.createElement('div'); nameText.className='text-xs editable'; nameText.textContent = displayName; nameText.title='Click to edit officer name';
+              const input = document.createElement('input'); input.className='inline-edit print-hide'; input.type='text'; input.style.display='none'; input.value = displayName;
+
+              function commitName(){
+                const val = input.value.trim();
+                const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
+                const rowObj = cur.rows[idx] || {};
+                const nextRow = { ...rowObj, customName: val };
+                const rows = cur.rows.map((r,i)=> i===idx ? nextRow : r);
+                const next = { ...state.att, [String(d)]: { ...cur, rows } };
+                state.att = next;
+                nameText.textContent = val if val else baseName
+                input.style.display='none'; nameText.style.display='inline';
+                suppressUntil = Date.now() + 500;
+                setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
+              }
+
+              nameText.onclick = ()=>{
+                input.value = nameText.textContent;
+                nameText.style.display='none'; input.style.display='inline-block'; input.focus(); input.select();
+              };
+              input.addEventListener('keydown', (e)=>{
+                if (e.key==='Enter'){ e.preventDefault(); commitName(); }
+                if (e.key==='Escape'){ input.style.display='none'; nameText.style.display='inline'; }
+              });
+              input.addEventListener('blur', commitName);
+              nameWrap.append(nameText, input);
+
+              const stamp = makeChip(status);
               stamp.onclick = ()=>{
                 const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
                 const old = cur.rows[idx] || {};
-                const nextStatus = old.status==='present' ? 'absent' : (old.status==='absent' ? undefined : 'present');
+                let nextStatus;
+                if (old.status === 'present') nextStatus = 'absent';
+                else if (old.status === 'absent') nextStatus = undefined;
+                else nextStatus = 'present';
                 const rows = cur.rows.map((r,i)=> i===idx ? { ...r, status: nextStatus } : r);
                 const next = { ...state.att, [String(d)]: { ...cur, rows } };
                 state.att = next;
-                suppressUntil = Date.now() + 600;
+                chipSet(stamp, nextStatus);
+                suppressUntil = Date.now() + 400;
                 setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-                stamp.replaceWith(chip(nextStatus));
               };
-              line.append(t1, t2, stamp);
+
+              line.append(t1, nameWrap, stamp);
               cell.appendChild(line);
               row.appendChild(cell);
             });
 
-            // Remarks cell — compact if '-'
+            // Remarks
             const remarks = document.createElement('div'); remarks.className='pad-sm';
             const wrapR = document.createElement('div'); wrapR.className='remarks-wrap';
             const txt = document.createElement('textarea'); txt.className='remarks'; txt.placeholder='-';
@@ -176,47 +203,36 @@ left.innerHTML = `
             const mirror = document.createElement('span'); mirror.className='remarks-print'; mirror.textContent = initial;
             txt.addEventListener('keydown', (e)=>{ if (e.key==='Enter') { e.preventDefault(); e.stopPropagation(); } });
             txt.addEventListener('focus', ()=>{ if (txt.value.trim()==='-') { txt.value=''; } });
-            function persist(){
+            function persistRemark(){
               const val = txt.value.trim()==='' ? '-' : txt.value;
               mirror.textContent = val;
               const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
               const next = { ...state.att, [String(d)]: { ...cur, dayRemark: val } };
               state.att = next;
-              // compact row if just a dash
               if (val==='-') row.classList.add('compactRow'); else row.classList.remove('compactRow');
-              suppressUntil = Date.now() + 600;
+              suppressUntil = Date.now() + 400;
               setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
             }
-            // initialize compact state
             if (initial==='-') row.classList.add('compactRow');
-            txt.addEventListener('input', persist);
-            txt.addEventListener('blur', persist);
+            txt.addEventListener('input', persistRemark);
+            txt.addEventListener('blur', persistRemark);
             remarks.appendChild(wrapR); wrapR.append(txt, mirror);
             row.appendChild(remarks);
             card.appendChild(row);
           }
 
           window.onbeforeprint = ()=>{
-            // ensure mirrors updated
             document.querySelectorAll('textarea.remarks').forEach(el=>{
               const val = el.value.trim()==='' ? '-' : el.value;
               const sib = el.parentElement?.querySelector('.remarks-print'); if (sib) sib.textContent = val;
             });
-            // Best-effort auto-fit: adjust zoom based on table height
-            const wrap = document.getElementById('table-wrap');
-            if (wrap){
-              const h = wrap.scrollHeight;
-              // Rough landscape height @ 96dpi ~ 1122px @ zoom 1; portrait target less.
-              const target = 1000; // safe printable height
-              let scale = Math.min(.80, Math.max(.68, target / h));
-              document.body.style.zoom = String(scale);
-            }
           };
 
           return wrap;
         }
 
         function resubscribe(){
+          const root = document.getElementById('app');
           root.innerHTML='';
           const len = daysInMonth(year, month);
           const nav = document.createElement('div'); nav.className='mbar print-hide'; nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div>'; root.appendChild(nav);
