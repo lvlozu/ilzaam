@@ -55,7 +55,27 @@
         function header(){
           const wrap = document.createElement('div'); wrap.className='pad';
           const bar = document.createElement('div'); bar.style.display='grid'; bar.style.gridTemplateColumns='1fr 1fr 1fr'; bar.style.alignItems='center';
-          const left = document.createElement('div'); left.className='text-sm bold'; left.textContent='BIZOLVE';
+const left = document.createElement('div');
+left.className='brand';
+left.innerHTML = `
+  <div style="
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #004d40;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    font-family: 'Cinzel', serif;
+  ">
+    BIZOLVE
+  </div>
+  <div style="
+    font-size: 11px;
+    color: #00796b;
+    font-weight: 500;
+    margin-top: -3px;
+  ">
+  </div>
+`;
           const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Security Officer\'s Attendance Logs</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
           const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
           bar.append(left, center, right); wrap.appendChild(bar); return wrap;
@@ -78,17 +98,7 @@
           return wrap;
         }
 
-        function chipSet(el, status){
-  el.dataset.status = (status===undefined? '' : status);
-  el.className = 'badge ' + (status==='present' ? 'present' : (status==='absent' ? 'absent' : ''));
-  el.innerHTML = (status==='present') ? '✓&nbsp;Present' : (status==='absent' ? '✗&nbsp;Absent' : '—');
-}
-function chip(status){
-  const span = document.createElement('span');
-  chipSet(span, status);
-  return span;
-}
-
+        function chip(status){
           const span = document.createElement('span');
           span.className = 'badge ' + (status==='present' ? 'present' : (status==='absent' ? 'absent' : ''));
           span.innerHTML = (status==='present') ? '✓&nbsp;Present' : (status==='absent' ? '✗&nbsp;Absent' : '—');
@@ -139,49 +149,20 @@ function chip(status){
               }
               const line = document.createElement('div'); line.className='inline';
               const t1 = document.createElement('div'); t1.className='text-xs bold'; t1.textContent=s.time;
-              // Editable officer name
-const nameWrap = document.createElement('div'); nameWrap.style.display='flex'; nameWrap.style.alignItems='center'; nameWrap.style.gap='6px';
-const t2 = document.createElement('div'); t2.className='text-xs editable'; t2.title='Click to edit officer name';
-// initial display: short form of staffName, unless a saved customName exists
-const currentRow = (state.att[String(d)]?.rows?.[idx]) || {};
-const initialName = (currentRow.customName && currentRow.customName.trim()!=='') ? currentRow.customName : shortName(staffName(s.staffId));
-t2.textContent = initialName;
-const input = document.createElement('input'); input.className='inline-edit print-hide'; input.type='text'; input.style.display='none'; input.value = initialName;
-
-function commitName(){
-  const val = input.value.trim();
-  const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
-  const prevRow = cur.rows[idx] || {};
-  const nextRow = { ...prevRow, customName: val };
-  const rows = cur.rows.map((r,i)=> i===idx ? nextRow : r);
-  const next = { ...state.att, [String(d)]: { ...cur, rows } };
-  state.att = next;
-  t2.textContent = val || shortName(staffName(s.staffId));
-  input.style.display='none'; t2.style.display='inline';
-  suppressUntil = Date.now() + 500;
-  setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-}
-t2.onclick = ()=>{ input.value = t2.textContent; t2.style.display='none'; input.style.display='inline-block'; input.focus(); input.select(); };
-input.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); commitName(); } if (e.key==='Escape'){ input.style.display='none'; t2.style.display='inline'; } });
-input.addEventListener('blur', commitName);
-nameWrap.append(t2, input);
-
-// Status chip (stable handler)
-const stamp = chip(status); stamp.style.cursor='pointer';
-stamp.onclick = ()=>{
-  const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
-  const old = cur.rows[idx] || {};
-  const nextStatus = old.status==='present' ? 'absent' : (old.status==='absent' ? undefined : 'present');
-  const rows = cur.rows.map((r,i)=> i===idx ? { ...r, status: nextStatus } : r);
-  const next = { ...state.att, [String(d)]: { ...cur, rows } };
-  state.att = next;
-  suppressUntil = Date.now() + 600;
-  setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-  chipSet(stamp, nextStatus); // update in place
-};
-
-line.append(t1, nameWrap, stamp);
-
+              const t2 = document.createElement('div'); t2.className='text-xs'; t2.textContent = shortName(staffName(s.staffId));
+              const stamp = chip(status); stamp.style.cursor='pointer';
+              stamp.onclick = ()=>{
+                const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
+                const old = cur.rows[idx] || {};
+                const nextStatus = old.status==='present' ? 'absent' : (old.status==='absent' ? undefined : 'present');
+                const rows = cur.rows.map((r,i)=> i===idx ? { ...r, status: nextStatus } : r);
+                const next = { ...state.att, [String(d)]: { ...cur, rows } };
+                state.att = next;
+                suppressUntil = Date.now() + 600;
+                setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
+                stamp.replaceWith(chip(nextStatus));
+              };
+              line.append(t1, t2, stamp);
               cell.appendChild(line);
               row.appendChild(cell);
             });
