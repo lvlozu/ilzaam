@@ -6,6 +6,10 @@
     <title>Security Officer's Attendance Logs — BIZOLVE</title>
     <link rel="stylesheet" href="./styles.css">
     <style>
+      :root { --err:#b71c1c; --ok:#1b5e20; --muted:#607d8b; }
+      .banner { display:none; background: #ffebee; color:#b71c1c; padding:8px 12px; border-left:4px solid #b71c1c; font-size:12px; }
+      .banner.show { display:block; }
+      .banner code{ background:#ffcdd2; padding:1px 4px; border-radius:4px; }
       @media print { 
         @page { size: A4 portrait; } 
         body[data-page="attendance"]{ zoom:.72; } 
@@ -26,19 +30,65 @@
         width: 140px; max-width: 160px;
       }
     </style>
+  </head>
+  <body data-page="attendance">
+    <div id="banner" class="banner"></div>
+    <div id="app"></div>
+
     <script type="module">
-      import { db } from './firebase-init.js';
-      import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-      import { SITE_ID, daysInMonth, formatMonthYear, weekdayShort, isWeekendHoliday, monthShort, staffName, computeShiftsForDate } from './shared.js';
+      // Resilient loader: try imports; if they fail (file:// or missing), fall back with stubs
+      let db, SITE_ID, daysInMonth, formatMonthYear, isWeekendHoliday, staffName, computeShiftsForDate;
+      const banner = document.getElementById('banner');
+      function showError(msg){
+        banner.innerHTML = msg; banner.classList.add('show');
+      }
 
-      function attendanceRef(year, month){ const ym = `${year}${String(month+1).padStart(2,'0')}`; return doc(db, 'attendance', `${SITE_ID}_${ym}`); }
-      function rosterRef(year, month){ const ym = `${year}${String(month+1).padStart(2,'0')}`; return doc(db, 'rosters', `${SITE_ID}_${ym}`); }
+      async function loadDeps(){
+        try {
+          const init = await import('./firebase-init.js');
+          db = init.db;
+        } catch (e) {
+          showError('Could not load <code>firebase-init.js</code>. Running in offline mode. Serve over HTTP (e.g. GitHub Pages) instead of <code>file://</code>.');
+        }
+        try {
+          const s = await import('./shared.js');
+          SITE_ID = s.SITE_ID; daysInMonth = s.daysInMonth; formatMonthYear = s.formatMonthYear; 
+          isWeekendHoliday = s.isWeekendHoliday; staffName = s.staffName; computeShiftsForDate = s.computeShiftsForDate;
+        } catch (e) {
+          // Provide minimal fallbacks so UI renders
+          showError((banner.innerHTML? banner.innerHTML+'<br>' : '') + 'Could not load <code>shared.js</code>. Using default rules for demo rendering.');
+          SITE_ID = 'demo-site';
+          daysInMonth = (y,m)=> new Date(y, m+1, 0).getDate();
+          formatMonthYear = (y,m)=> new Date(y,m,1).toLocaleString('en',{month:'long',year:'numeric'});
+          isWeekendHoliday = (d)=> [5,6].includes(d.getDay());
+          staffName = (id)=> id==='ibrahim'?'I. Naseer': id==='saeedha'?'Saeedhaa A.K' : id==='rizaana'?'Rizaana A.': '';
+          computeShiftsForDate = (date, sch, ov)=> {
+            const weekend = isWeekendHoliday(date);
+            const forcedPH = ov===1, forcedSH = ov===2;
+            if (forcedPH || (!forcedSH && weekend)) {
+              return [
+                { time:'23:00–07:00', staffId:'ibrahim' },
+                { time:'15:00–23:00', staffId:'saeedha' },
+                { time:'07:00–15:00', staffId:'rizaana' },
+              ];
+            }
+            if (forcedSH || sch) {
+              return [
+                { time:'00:00–08:00', staffId:'ibrahim' },
+                { time:'16:00–00:00', staffId:'saeedha' },
+                { time:'14:00–16:00', staffId:'rizaana' },
+              ];
+            }
+            return [
+              { time:'23:00–07:00', staffId:'ibrahim' },
+              { time:'15:00–23:00', staffId:'saeedha' },
+              { grey:true },
+            ];
+          };
+        }
+      }
 
-      const shortName = (full)=> full?.startsWith('Ibrahim') ? 'I. Naseer'
-                           : full?.startsWith('Saeedhaa') ? 'Saeedhaa A.K'
-                           : full?.startsWith('Riza') ? 'Rizaana A.'
-                           : (full||'');
-
+      // Utilities that don't depend on shared.js
       function startMinutes(time){ if(!time) return Infinity; const [a,b]=time.split('–'); const [sh,sm]=a.split(':'); const [eh,em]=b.split(':'); const s=+sh*60+ +sm; const e=+eh*60+ +em; if (s<=e) return s; if (e===0) return s; return 0; }
       function isPastDay(date){
         const today = new Date(); const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -48,15 +98,22 @@
       function isTodayDay(date){
         const today = new Date(); return date.getFullYear()===today.getFullYear() && date.getMonth()===today.getMonth() && date.getDate()===today.getDate();
       }
+      const shortName = (full)=> full;
 
-      function render(){
+      async function main(){
+        await loadDeps();
+        const { doc, onSnapshot, setDoc } = db ? await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js') : { doc:()=>{}, onSnapshot:()=>{}, setDoc:()=>{} };
+
         const root = document.getElementById('app');
         const now = new Date();
-        let year = parseInt(sessionStorage.getItem('yr') || now.getFullYear());
-        let month = parseInt(sessionStorage.getItem('mo') || now.getMonth());
+        let year = now.getFullYear();
+        let month = now.getMonth();
         const state = { overrides:{}, schoolMap:{}, att:{} };
         let unsubRoster = ()=>{}; let unsubAtt = ()=>{};
-        let suppressUntil = 0; // avoid rebuild while typing
+        let suppressUntil = 0;
+
+        function attendanceRef(year, month){ const ym = `${year}${String(month+1).padStart(2,'0')}`; return doc(db, 'attendance', `${SITE_ID}_${ym}`); }
+        function rosterRef(year, month){ const ym = `${year}${String(month+1).padStart(2,'0')}`; return doc(db, 'rosters', `${SITE_ID}_${ym}`); }
 
         function header(){
           const wrap = document.createElement('div'); wrap.className='pad';
@@ -127,10 +184,7 @@
               const cell = document.createElement('div'); cell.className='pad-sm';
               if (s.grey){ cell.classList.add('noduty'); row.appendChild(cell); return; }
               const saved = (record.rows[idx] || {});
-              const baseName = shortName(staffName(saved.staffId || s.staffId));
-              const displayName = saved.customName && saved.customName.trim()!=='' ? saved.customName : baseName;
-
-              // Resolve status (auto present for past days; for today only after shift start)
+              const baseName = saved.customName || (staffName(saved.staffId || s.staffId));
               let status = saved.status;
               if (!status){
                 if (isPastDay(date)) status = 'present';
@@ -145,8 +199,8 @@
 
               // Editable officer name
               const nameWrap = document.createElement('div'); nameWrap.style.display='flex'; nameWrap.style.alignItems='center'; nameWrap.style.gap='6px';
-              const nameText = document.createElement('div'); nameText.className='text-xs editable'; nameText.textContent = displayName; nameText.title='Click to edit officer name';
-              const input = document.createElement('input'); input.className='inline-edit print-hide'; input.type='text'; input.style.display='none'; input.value = displayName;
+              const nameText = document.createElement('div'); nameText.className='text-xs editable'; nameText.textContent = baseName; nameText.title='Click to edit officer name';
+              const input = document.createElement('input'); input.className='inline-edit print-hide'; input.type='text'; input.style.display='none'; input.value = baseName;
 
               function commitName(){
                 const val = input.value.trim();
@@ -156,10 +210,10 @@
                 const rows = cur.rows.map((r,i)=> i===idx ? nextRow : r);
                 const next = { ...state.att, [String(d)]: { ...cur, rows } };
                 state.att = next;
-                nameText.textContent = val if val else baseName
+                nameText.textContent = val || baseName;
                 input.style.display='none'; nameText.style.display='inline';
                 suppressUntil = Date.now() + 500;
-                setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
+                if (db) setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
               }
 
               nameText.onclick = ()=>{
@@ -186,7 +240,7 @@
                 state.att = next;
                 chipSet(stamp, nextStatus);
                 suppressUntil = Date.now() + 400;
-                setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
+                if (db) setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
               };
 
               line.append(t1, nameWrap, stamp);
@@ -211,7 +265,7 @@
               state.att = next;
               if (val==='-') row.classList.add('compactRow'); else row.classList.remove('compactRow');
               suppressUntil = Date.now() + 400;
-              setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
+              if (db) setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
             }
             if (initial==='-') row.classList.add('compactRow');
             txt.addEventListener('input', persistRemark);
@@ -232,51 +286,50 @@
         }
 
         function resubscribe(){
-          const root = document.getElementById('app');
-          root.innerHTML='';
+          const nav = document.createElement('div'); nav.className='mbar print-hide'; nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div>';
+          root.innerHTML=''; root.appendChild(nav); root.appendChild(header()); root.appendChild(controls());
           const len = daysInMonth(year, month);
-          const nav = document.createElement('div'); nav.className='mbar print-hide'; nav.innerHTML = '<a class="btn" href="./WC.html">← Back to WC</a><div class="grow"></div>'; root.appendChild(nav);
-          root.appendChild(header());
-          root.appendChild(controls());
 
-          const rRef = rosterRef(year, month);
-          unsubRoster(); unsubAtt();
-          unsubRoster = onSnapshot(rRef, snap=>{
-            const d = snap.data() || {};
-            state.overrides = d.overrides || {};
-            state.schoolMap = d.schoolMap || {};
-            if (Date.now() < suppressUntil) return;
+          if (db){
+            const { onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
+            const rRef = rosterRef(year, month);
+            const aRef = attendanceRef(year, month);
+            unsubRoster(); unsubAtt();
+            unsubRoster = onSnapshot(rRef, snap=>{
+              const d = snap.data() || {};
+              state.overrides = d.overrides || {};
+              state.schoolMap = d.schoolMap || {};
+              if (Date.now() < suppressUntil) return;
+              const old = document.getElementById('table-wrap'); if (old) old.remove();
+              const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
+              appendFooter();
+            }, ()=>{ state.overrides = {}; state.schoolMap = {}; });
+            unsubAtt = onSnapshot(aRef, snap=>{
+              const data = snap.data() || {}; state.att = data.rows || {};
+              if (Date.now() < suppressUntil) return;
+              const old = document.getElementById('table-wrap'); if (old) old.remove();
+              const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
+              appendFooter();
+            }, ()=>{ state.att = {}; });
+          } else {
+            // Offline fallback: render with empty state so it's not blank
             const old = document.getElementById('table-wrap'); if (old) old.remove();
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
-            let foot = document.getElementById('foot'); if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
-            foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
-            root.appendChild(foot);
-          }, ()=>{ state.overrides = {}; state.schoolMap = {}; });
+            appendFooter();
+          }
+        }
 
-          const aRef = attendanceRef(year, month);
-          unsubAtt = onSnapshot(aRef, snap=>{
-            const data = snap.data() || {}; state.att = data.rows || {};
-            if (Date.now() < suppressUntil) return;
-            const old = document.getElementById('table-wrap'); if (old) old.remove();
-            const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
-            let foot = document.getElementById('foot'); if (foot) foot.remove();
-            foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
-            foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
-            root.appendChild(foot);
-          }, ()=>{ state.att = {}; });
+        function appendFooter(){
+          let foot = document.getElementById('foot'); if (foot) foot.remove();
+          foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
+          foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
+          document.getElementById('app').appendChild(foot);
         }
 
         resubscribe();
       }
 
-      window.addEventListener('DOMContentLoaded', ()=>{
-        document.body.setAttribute('data-page','attendance');
-        render();
-      });
+      main();
     </script>
-  </head>
-  <body data-page="attendance">
-    <div id="app"></div>
   </body>
 </html>
