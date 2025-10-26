@@ -309,6 +309,21 @@ function renderScreens() {
 function toggleSelect(seatId) {
   const el = document.querySelector(`[data-id='${seatId}']`);
   if (!el || el.classList.contains("booked") || el.classList.contains("confirmed")) return;
+
+  // Prevent booking of any screenC seats
+  if (seatId.startsWith("screenC-")) return alert("❌ Screen C seats are unavailable.");
+
+  if (el.classList.contains("selected")) {
+    el.classList.remove("selected");
+    selectedSeats = selectedSeats.filter(s => s.seatId !== seatId);
+  } else {
+    if (selectedSeats.length >= 5) return alert("Max 5 seats allowed");
+    el.classList.add("selected");
+    selectedSeats.push({ seatId, name: "" });
+  }
+  updateNamesArea();
+}
+
   if (el.classList.contains("selected")) {
     el.classList.remove("selected");
     selectedSeats = selectedSeats.filter(s => s.seatId !== seatId);
