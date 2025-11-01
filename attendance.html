@@ -16,11 +16,8 @@
       .remarks-wrap { display:flex; align-items:center; gap:6px; }
       .remarks-print { display:none; font-size:10px; }
       .small { font-size:10px; }
-      /* Compact row when no remarks (dash) to help fit A4 */
       .compactRow .pad-sm { padding: 2px !important; }
       .compactRow .text-xs { font-size: 9px !important; }
-
-      /* === Added for inline editable names === */
       .editable { cursor:text; border-bottom:1px dotted transparent; }
       .editable:hover { border-color:#94a3b8; }
       input.inline-edit { font-size:12px; padding:1px 4px; border:1px solid #cbd5e1; border-radius:6px; width:140px; max-width:160px; }
@@ -39,26 +36,15 @@
                            : (full||'');
 
       function startMinutes(time){ if(!time) return Infinity; const [a,b]=time.split('–'); const [sh,sm]=a.split(':'); const [eh,em]=b.split(':'); const s=+sh*60+ +sm; const e=+eh*60+ +em; if (s<=e) return s; if (e===0) return s; return 0; }
-      function isPastDay(date){
-        const today = new Date(); const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const d0 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        return d0.getTime() < t0.getTime();
-      }
-      function isTodayDay(date){
-        const today = new Date(); return date.getFullYear()===today.getFullYear() && date.getMonth()===today.getMonth() && date.getDate()===today.getDate();
-      }
+      function isPastDay(date){ const today = new Date(); const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()); const d0 = new Date(date.getFullYear(), date.getMonth(), date.getDate()); return d0.getTime() < t0.getTime(); }
+      function isTodayDay(date){ const today = new Date(); return date.getFullYear()===today.getFullYear() && date.getMonth()===today.getMonth() && date.getDate()===today.getDate(); }
 
-      /* === Added: stable badge updater (no replaceWith) === */
       function chipSet(el, status){
         el.dataset.status = (status===undefined? '' : status);
         el.className = 'badge ' + (status==='present' ? 'present' : (status==='absent' ? 'absent' : ''));
         el.innerHTML = (status==='present') ? '✓&nbsp;Present' : (status==='absent' ? '✗&nbsp;Absent' : '—');
       }
-      function chip(status){
-        const span = document.createElement('span');
-        chipSet(span, status);
-        return span;
-      }
+      function chip(status){ const span = document.createElement('span'); chipSet(span, status); return span; }
 
       function render(){
         const root = document.getElementById('app');
@@ -67,7 +53,7 @@
         let month = parseInt(sessionStorage.getItem('mo') || now.getMonth());
         const state = { overrides:{}, schoolMap:{}, att:{} };
         let unsubRoster = ()=>{}; let unsubAtt = ()=>{};
-        let suppressUntil = 0; // avoid rebuild while typing
+        let suppressUntil = 0;
 
         function header(){
           const wrap = document.createElement('div'); wrap.className='pad';
@@ -75,24 +61,23 @@
           const left = document.createElement('div');
           left.className='brand';
           left.innerHTML = `
-  <div style="
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #004d40;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-    font-family: 'Cinzel', serif;
-  ">
-    BIZOLVE
-  </div>
-  <div style="
-    font-size: 11px;
-    color: #00796b;
-    font-weight: 500;
-    margin-top: -3px;
-  ">
-  </div>
-`;
+            <div style="
+              font-size: 26px;
+              font-weight: 700;
+              letter-spacing: 1px;
+              color: #004d40;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+              font-family: 'Cinzel', serif;
+            ">
+              BIZOLVE
+            </div>
+            <div style="
+              font-size: 11px;
+              color: #00796b;
+              font-weight: 500;
+              margin-top: -3px;
+            "></div>
+          `;
           const center = document.createElement('div'); center.style.textAlign='center'; center.innerHTML = '<div class="text-xl">Security Officer\'s Attendance Logs</div><div class="text-sm">for Hidhaya School / N. Miladhoo</div>';
           const right = document.createElement('div'); right.className='text-sm'; right.style.textAlign='right'; right.textContent = formatMonthYear(year, month);
           bar.append(left, center, right); wrap.appendChild(bar); return wrap;
@@ -160,10 +145,8 @@
               const line = document.createElement('div'); line.className='inline';
               const t1 = document.createElement('div'); t1.className='text-xs bold'; t1.textContent=s.time;
 
-              /* === Replaced: static name → inline editable name with Firestore persistence === */
               const nameWrap = document.createElement('div');
               nameWrap.style.display='flex'; nameWrap.style.alignItems='center'; nameWrap.style.gap='6px';
-
               const baseName = shortName(staffName(s.staffId));
               const existing = (record.rows[idx] || {});
               const initialName = (existing.customName && existing.customName.trim()!=='') ? existing.customName : baseName;
@@ -183,7 +166,7 @@
                 const val = input.value.trim();
                 const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
                 const prevRow = cur.rows[idx] || {};
-                const nextRow = { ...prevRow, customName: val }; // saved as customName
+                const nextRow = { ...prevRow, customName: val };
                 const rows = cur.rows.map((r,i)=> i===idx ? nextRow : r);
                 const next = { ...state.att, [String(d)]: { ...cur, rows } };
                 state.att = next;
@@ -196,10 +179,8 @@
               t2.onclick = ()=>{ input.value = t2.textContent; t2.style.display='none'; input.style.display='inline-block'; input.focus(); input.select(); };
               input.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); commitName(); } if (e.key==='Escape'){ input.style.display='none'; t2.style.display='inline'; } });
               input.addEventListener('blur', commitName);
-
               nameWrap.append(t2, input);
 
-              /* === Replaced: replaceWith → in-place update via chipSet === */
               const stamp = chip(status); stamp.style.cursor='pointer';
               stamp.onclick = ()=>{
                 const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
@@ -210,7 +191,7 @@
                 state.att = next;
                 suppressUntil = Date.now() + 600;
                 setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
-                chipSet(stamp, nextStatus); // update same DOM node so handler stays
+                chipSet(stamp, nextStatus);
               };
 
               line.append(t1, nameWrap, stamp);
@@ -218,7 +199,6 @@
               row.appendChild(cell);
             });
 
-            // Remarks cell — compact if '-'
             const remarks = document.createElement('div'); remarks.className='pad-sm';
             const wrapR = document.createElement('div'); wrapR.className='remarks-wrap';
             const txt = document.createElement('textarea'); txt.className='remarks'; txt.placeholder='-';
@@ -233,12 +213,10 @@
               const cur = state.att[String(d)] || { rows:[{},{},{}], dayRemark:'' };
               const next = { ...state.att, [String(d)]: { ...cur, dayRemark: val } };
               state.att = next;
-              // compact row if just a dash
               if (val==='-') row.classList.add('compactRow'); else row.classList.remove('compactRow');
               suppressUntil = Date.now() + 600;
               setDoc(attendanceRef(year,month), { siteId: SITE_ID, year, month, rows: next }, { merge:true });
             }
-            // initialize compact state
             if (initial==='-') row.classList.add('compactRow');
             txt.addEventListener('input', persist);
             txt.addEventListener('blur', persist);
@@ -248,20 +226,10 @@
           }
 
           window.onbeforeprint = ()=>{
-            // ensure mirrors updated
             document.querySelectorAll('textarea.remarks').forEach(el=>{
               const val = el.value.trim()==='' ? '-' : el.value;
               const sib = el.parentElement?.querySelector('.remarks-print'); if (sib) sib.textContent = val;
             });
-            // Best-effort auto-fit: adjust zoom based on table height
-            const wrap = document.getElementById('table-wrap');
-            if (wrap){
-              const h = wrap.scrollHeight;
-              // Rough landscape height @ 96dpi ~ 1122px @ zoom 1; portrait target less.
-              const target = 1000; // safe printable height
-              let scale = Math.min(.80, Math.max(.68, target / h));
-              document.body.style.zoom = String(scale);
-            }
           };
 
           return wrap;
@@ -285,11 +253,11 @@
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot'); if (foot) foot.remove();
             foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
-foot.innerHTML = `
-  <div>Hassan Irufaan Mohamed - Checked and approved by</div>
-  <div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div>
-  <div style="margin-top:2px;">contact: 7981238</div>
-`;
+            foot.innerHTML = `
+              <div>Hassan Irufaan Mohamed - Checked and approved by</div>
+              <div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div>
+              <div style="margin-top:2px;">contact: 7981238</div>
+            `;
             root.appendChild(foot);
           }, ()=>{ state.overrides = {}; state.schoolMap = {}; });
 
@@ -301,7 +269,11 @@ foot.innerHTML = `
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot'); if (foot) foot.remove();
             foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
-            foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
+            foot.innerHTML = `
+              <div>Hassan Irufaan Mohamed - Checked and approved</div>
+              <div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div>
+              <div style="margin-top:2px;">contact: 7981238</div>
+            `;
             root.appendChild(foot);
           }, ()=>{ state.att = {}; });
         }
