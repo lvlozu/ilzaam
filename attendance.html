@@ -285,7 +285,11 @@
             const tbl = build(len); tbl.id='table-wrap'; root.appendChild(tbl);
             let foot = document.getElementById('foot'); if (foot) foot.remove();
             foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9'; foot.style.textAlign='center';
-            foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
+foot.innerHTML = `
+  <div>Hassan Irufaan Mohamed - Checked and approved by</div>
+  <div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div>
+  <div style="margin-top:2px;">contact: 7981238</div>
+`;
             root.appendChild(foot);
           }, ()=>{ state.overrides = {}; state.schoolMap = {}; });
 
