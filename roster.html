@@ -136,11 +136,18 @@ left.innerHTML = `
           });
           root.appendChild(grid);
 
-          const foot = document.createElement('div'); foot.id='foot'; foot.className='pad'; foot.style.background='#f1f8e9';
-          foot.style.textAlign='center';
-          foot.innerHTML = '<div>Supervised &amp; Managed by Hassan Irfan Mohamed</div><div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div><div style="margin-top:2px;">contact: 7981238</div>';
-          root.appendChild(foot);
-        }
+const foot = document.createElement('div'); 
+foot.id='foot'; 
+foot.className='pad'; 
+foot.style.background='#f1f8e9';
+foot.style.textAlign='center';
+foot.innerHTML = `
+  <div>Hassan Irufaan Mohamed - Checked and approved by</div>
+  <div class="bold" style="margin-top:2px;">BIZOLVE - Owner</div>
+  <div style="margin-top:2px;">contact: 7981238</div>
+`;
+root.appendChild(foot);
+
 
         function subscribe(){
           if (typeof unsubscribe === 'function') unsubscribe();
