@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ILZAAM - The Movie | Booking For N. Miladhoo</title>
+  <title>Alvadhaau - The Movie | Booking For N. Miladhoo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Background: JPG default (no white flash) -> swap to GIF when loaded */
@@ -84,15 +84,15 @@
   <!-- Header -->
   <div class="text-center mb-4 readable">
     <h1 class="text-2xl font-bold text-outline mb-1">Welcome to</h1>
-    <h2 class="text-xl font-bold text-outline mb-1">ILZAAM - The Movie</h2>
+    <h2 class="text-xl font-bold text-outline mb-1">Alvadhaau - The Movie</h2>
   </div>
 
   <!-- Pre-Booking Instructions -->
   <div id="instructions" class="p-4 rounded mb-4 max-w-2xl mx-auto readable">
     <ul class="space-y-1 text-yellow-400 font-semibold text-base leading-snug">
       <li class="flex items-start"><span class="mr-2">📍</span> Venue: Miladhoo Youth Center</li>
-      <li class="flex items-start"><span class="mr-2">📅</span> Date: 31st October 2025 (Friday Night)</li>
-      <li class="flex items-start"><span class="mr-2">✅</span> Ticket Price: 100/- per ticket</li>
+      <li class="flex items-start"><span class="mr-2">📅</span> Date: 19 December 2025 (Friday Night 21:00)</li>
+      <li class="flex items-start"><span class="mr-2">✅</span> Ticket Price: 150 MVR</li>
       <li class="flex items-start"><span class="mr-2">📤</span> Booker is fully responsible for all seats booked and must make full payment.</li>
       <li class="flex items-start"><span class="mr-2">🟩</span> Maximum of 5 seats allowed per booking.</li>
     </ul>
@@ -116,16 +116,12 @@
           </div>
         </div>
 
-        <!-- HTML5 Video -->
-        <video id="trailerVideo"
-               class="hidden rounded"
-               controls
-               preload="metadata"
-               playsinline
-               webkit-playsinline
-               poster="poster.jpg">
-          <!-- source inserted by JS -->
-        </video>
+        <!-- YouTube Iframe (fixed playback) -->
+        <iframe id="trailerVideo"
+                class="hidden rounded"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+        </iframe>
       </div>
 
       <!-- Actions under the player: switch trailers + proceed -->
@@ -134,13 +130,6 @@
         <button id="playT2" onclick="playTrailer(1)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Trailer 2</button>
         <button id="toBookingAfterTrailer" onclick="skipToBooking()" class="bg-green-600 px-4 py-2 rounded">➡ Proceed to Booking</button>
       </div>
-
-      <!-- Dhivehi footnote, centered & RTL -->
-      <p id="trailerNote" dir="rtl" class="mt-3 text-center text-yellow-300 text-sm readable hidden">
-        މިއީ ކާމިޔާބު ދިވެހި ފިލްމް ސްޓާރ ޔޫސުފް ޝަފީޢު (ޔޫއްޕެ) ގެ ވަރަށް ޚައްސަ ފިލްމެއް! ޔޫއްޕެ އަކީ ރީތި އަދި ޔާމިޔާބު އެތަކެއް ފިލްމެއްގައި އެކްޓްކޮށް އަދި ޑައިރެކްޓްކޮށްފައިވާ ކުޅަދާނަ ފަންނާނެއް!
-      </p>
-    </div>
-  </div>
 
   <!-- Step 1 (white card retained) -->
   <div id="step1" class="hidden mb-4">
@@ -198,12 +187,10 @@ window.copyAcc = () => {
   navigator.clipboard.writeText(acc).then(() => alert("Account copied: " + acc));
 };
 
-/* ---------- TRAILER: TWO LOCAL MP4S ---------- */
+/* ---------- TRAILER: YOUTUBE (FIXED) ---------- */
 const videoSources = [
-  { label: "TRAILER 1", src: "./TRAILER%201.mp4" },
-  { label: "TRAILER 2", src: "./TRAILER%202.mp4" },
-  // If renamed: { label: "TRAILER 1", src: "./trailer1.mp4" },
-  //             { label: "TRAILER 2", src: "./trailer2.mp4" },
+  { label: "TRAILER 1", src: "https://www.youtube.com/embed/XlF5fbximqs?autoplay=1&rel=0" },
+  { label: "TRAILER 2", src: "https://www.youtube.com/embed/XlF5fbximqs?autoplay=1&rel=0" },
 ];
 
 function setTrailerButtonsState(activeIndex) {
@@ -231,22 +218,16 @@ window.playTrailer = (index = 0) => {
   const chosen = videoSources[index] || videoSources[0];
 
   const overlay = document.getElementById('trailerOverlay');
-  const video   = document.getElementById('trailerVideo');
+  const video   = document.getElementById('trailerVideo'); // iframe now
   const actions = document.getElementById('trailerActions');
   const note    = document.getElementById('trailerNote');
 
   if (overlay) overlay.classList.add('hidden');
 
+  // Set iframe src (YouTube plays automatically due to autoplay=1 in URL)
   if (video.getAttribute('data-current-src') !== chosen.src) {
-    video.pause();
-    video.removeAttribute('src');
-    while (video.firstChild) video.removeChild(video.firstChild);
-    const source = document.createElement('source');
-    source.src = chosen.src;
-    source.type = 'video/mp4';
-    video.appendChild(source);
+    video.setAttribute('src', chosen.src);
     video.setAttribute('data-current-src', chosen.src);
-    video.load();
   }
 
   video.classList.remove('hidden');
@@ -254,10 +235,6 @@ window.playTrailer = (index = 0) => {
   note.classList.remove('hidden');
 
   setTrailerButtonsState(index);
-
-  video.play().catch(() => {
-    console.warn('Autoplay blocked; waiting for user interaction.');
-  });
 };
 
 /* ---------- FLOW ---------- */
