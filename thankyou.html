@@ -68,7 +68,7 @@
     <div id="bookingDetails" class="mb-4 bg-black/20 p-4 rounded text-sm"></div>
 
     <div class="mb-4">
-      <p class="font-semibold">💰 Ticket Price: 100 MVR</p>
+      <p class="font-semibold">💰 Ticket Price: 150 MVR</p>
       <p class="font-semibold">🎫 Total Tickets: <span id="totalTickets"></span></p>
       <p class="font-semibold">💵 Total Amount: <span id="totalAmount"></span> MVR</p>
     </div>
@@ -98,8 +98,8 @@
     </div>
 
     <div class="text-left mb-6">
-      <p class="font-medium">🎥 ILZAAM - The Movie</p>
-      <p>📅 31st October 2025 (Friday Night)</p>
+      <p class="font-medium">🎥 Alvadhaau - The Movie</p>
+      <p>📅 19 December 2025 (Friday Night 21:00)</p>
       <p>📍 Miladhoo Youth Center</p>
     </div>
 
@@ -129,7 +129,7 @@
     document.getElementById("fullName").textContent = fullName;
     document.getElementById("phone").textContent = phone;
     document.getElementById("totalTickets").textContent = selectedSeats.length;
-    document.getElementById("totalAmount").textContent = selectedSeats.length * 100;
+    document.getElementById("totalAmount").textContent = selectedSeats.length * 150;
 
     document.getElementById("bookingDetails").innerHTML = selectedSeats.map(s => {
       const screenName = s.seatId
