@@ -116,7 +116,7 @@
           </div>
         </div>
 
-        <!-- YouTube iframe (keeps same id so layout logic stays simple) -->
+        <!-- YouTube iframe -->
         <iframe id="trailerVideo"
                 class="hidden rounded"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -129,6 +129,8 @@
         <button id="toYouTubeAfterTrailer" onclick="watchOnYouTube()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Watch on YouTube</button>
         <button id="toBookingAfterTrailer" onclick="skipToBooking()" class="bg-green-600 px-4 py-2 rounded">➡ Proceed to Booking</button>
       </div>
+    </div>
+  </div>
 
   <!-- Step 1 (white card retained) -->
   <div id="step1" class="hidden mb-4">
@@ -198,7 +200,7 @@ window.playTrailer = () => {
   const overlay = document.getElementById('trailerOverlay');
   const iframe  = document.getElementById('trailerVideo');
   const actions = document.getElementById('trailerActions');
-  const note    = document.getElementById('trailerNote');
+  const note    = document.getElementById('trailerNote'); // might not exist in your HTML
 
   if (overlay) overlay.classList.add('hidden');
 
@@ -209,14 +211,20 @@ window.playTrailer = () => {
 
   iframe.classList.remove('hidden');
   actions.classList.remove('hidden');
-  note.classList.remove('hidden');
+  if (note) note.classList.remove('hidden');
 };
 
 /* ---------- FLOW ---------- */
 window.skipToBooking = () => {
-  document.getElementById("instructions").classList.add("hidden");
-  document.getElementById("step1").classList.remove("hidden");
-  window.scrollTo({ top: document.getElementById("step1").offsetTop, behavior: 'smooth' });
+  const instructions = document.getElementById("instructions");
+  const step1 = document.getElementById("step1");
+
+  if (instructions) instructions.classList.add("hidden");
+  if (step1) step1.classList.remove("hidden");
+
+  if (step1) {
+    window.scrollTo({ top: step1.offsetTop, behavior: 'smooth' });
+  }
 
   if (history.replaceState && (location.hash === "#book")) {
     history.replaceState(null, "", location.pathname + location.search);
