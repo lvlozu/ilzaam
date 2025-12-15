@@ -110,13 +110,13 @@
         <!-- Transparent overlay with initial buttons -->
         <div id="trailerOverlay" class="flex flex-col items-center justify-center">
           <div class="flex flex-col sm:flex-row gap-3">
-            <button onclick="playTrailer(0)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 1</button>
-            <button onclick="playTrailer(1)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer 2</button>
+            <button onclick="playTrailer()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Play Trailer</button>
+            <button onclick="watchOnYouTube()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Watch on YouTube</button>
             <button onclick="skipToBooking()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">➡ Skip to Booking</button>
           </div>
         </div>
 
-        <!-- YouTube Iframe (fixed playback) -->
+        <!-- YouTube iframe (keeps same id so layout logic stays simple) -->
         <iframe id="trailerVideo"
                 class="hidden rounded"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -124,10 +124,9 @@
         </iframe>
       </div>
 
-      <!-- Actions under the player: switch trailers + proceed -->
+      <!-- Actions under the player: proceed + youtube -->
       <div id="trailerActions" class="mt-4 flex flex-wrap items-center justify-center gap-2 hidden">
-        <button id="playT1" onclick="playTrailer(0)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Trailer 1</button>
-        <button id="playT2" onclick="playTrailer(1)" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Trailer 2</button>
+        <button id="toYouTubeAfterTrailer" onclick="watchOnYouTube()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">▶ Watch on YouTube</button>
         <button id="toBookingAfterTrailer" onclick="skipToBooking()" class="bg-green-600 px-4 py-2 rounded">➡ Proceed to Booking</button>
       </div>
 
@@ -187,54 +186,30 @@ window.copyAcc = () => {
   navigator.clipboard.writeText(acc).then(() => alert("Account copied: " + acc));
 };
 
-/* ---------- TRAILER: YOUTUBE (FIXED) ---------- */
-const videoSources = [
-  { label: "TRAILER 1", src: "https://www.youtube.com/embed/XlF5fbximqs?autoplay=1&rel=0" },
-  { label: "TRAILER 2", src: "https://www.youtube.com/embed/XlF5fbximqs?autoplay=1&rel=0" },
-];
+/* ---------- TRAILER: SINGLE YOUTUBE (FIXED) ---------- */
+const YT_WATCH_URL = "https://youtu.be/XlF5fbximqs";
+const YT_EMBED_URL = "https://www.youtube.com/embed/XlF5fbximqs?autoplay=1&rel=0";
 
-function setTrailerButtonsState(activeIndex) {
-  const t1 = document.getElementById('playT1');
-  const t2 = document.getElementById('playT2');
+window.watchOnYouTube = () => {
+  window.open(YT_WATCH_URL, "_blank");
+};
 
-  // Enable both first
-  [t1, t2].forEach(btn => {
-    btn.removeAttribute('disabled');
-    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-  });
-
-  // Disable the one that's currently playing
-  if (activeIndex === 0 && t1) {
-    t1.setAttribute('disabled', 'true');
-    t1.classList.add('opacity-50', 'cursor-not-allowed');
-  }
-  if (activeIndex === 1 && t2) {
-    t2.setAttribute('disabled', 'true');
-    t2.classList.add('opacity-50', 'cursor-not-allowed');
-  }
-}
-
-window.playTrailer = (index = 0) => {
-  const chosen = videoSources[index] || videoSources[0];
-
+window.playTrailer = () => {
   const overlay = document.getElementById('trailerOverlay');
-  const video   = document.getElementById('trailerVideo'); // iframe now
+  const iframe  = document.getElementById('trailerVideo');
   const actions = document.getElementById('trailerActions');
   const note    = document.getElementById('trailerNote');
 
   if (overlay) overlay.classList.add('hidden');
 
-  // Set iframe src (YouTube plays automatically due to autoplay=1 in URL)
-  if (video.getAttribute('data-current-src') !== chosen.src) {
-    video.setAttribute('src', chosen.src);
-    video.setAttribute('data-current-src', chosen.src);
+  if (iframe.getAttribute('data-current-src') !== YT_EMBED_URL) {
+    iframe.setAttribute('src', YT_EMBED_URL);
+    iframe.setAttribute('data-current-src', YT_EMBED_URL);
   }
 
-  video.classList.remove('hidden');
+  iframe.classList.remove('hidden');
   actions.classList.remove('hidden');
   note.classList.remove('hidden');
-
-  setTrailerButtonsState(index);
 };
 
 /* ---------- FLOW ---------- */
